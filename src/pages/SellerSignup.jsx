@@ -1,22 +1,42 @@
-import React, {useState} from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
 
-export default function SellerSignup(){
-  const [step, setStep] = useState(1)
-  const nav = useNavigate()
+export default function SellerSignup() {
+  const nav = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  async function onSignup(e) {
+    e.preventDefault();
+    setLoading(true);
+
+    const email = e.target.email.value.trim();
+    const password = e.target.password.value;
+
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setLoading(false);
+      alert(error.message);
+      return;
+    }
+
+    setLoading(false);
+    nav("/seller/waiting");
+  }
+
   return (
-    <div className="signup">
-      <h1>Seller Signup</h1>
-      <p>Step {step} of 3</p>
-      <form onSubmit={(e)=>{e.preventDefault(); if(step<3) setStep(s=>s+1); else nav('/pricing')}}>
-        {step===1 && <input placeholder="Company name" required />}
-        {step===2 && <input placeholder="Store name" required />}
-        {step===3 && <input placeholder="Email" required type="email" />}
-        <div className="controls">
-          {step>1 && <button type="button" onClick={()=>setStep(s=>s-1)}>Back</button>}
-          <button type="submit">{step<3 ? 'Next' : 'Choose Package'}</button>
-        </div>
+    <div style={{ maxWidth: 420, margin: "40px auto", padding: 16 }}>
+      <h2>Seller Kayıt</h2>
+      <form onSubmit={onSignup} style={{ display:"grid", gap:10 }}>
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Şifre" required />
+        <button disabled={loading} type="submit">
+          {loading ? "Oluşturuluyor..." : "Seller hesabı oluştur"}
+        </button>
       </form>
+      <p style={{ marginTop: 12, opacity: 0.8 }}>
+        Not: Seller hesabı açılır. Şirket yetkisi admin tarafından verilir.
+      </p>
     </div>
-  )
+  );
 }
