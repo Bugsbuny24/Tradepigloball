@@ -1,20 +1,64 @@
-import React, {useState} from 'react'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
 
-export default function BuyerSignup(){
-  const [step, setStep] = useState(1)
+export default function BuyerSignup() {
+  const nav = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  async function onSignup(e) {
+    e.preventDefault();
+    setLoading(true);
+
+    const email = e.target.email.value.trim();
+    const password = e.target.password.value;
+    const full_name = e.target.full_name.value.trim() || null;
+    const country = e.target.country.value.trim() || null;
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setLoading(false);
+      alert(error.message);
+      return;
+    }
+
+    const uid = data.user?.id;
+    if (!uid) {
+      setLoading(false);
+      alert("Signup başarılı ama user id alınamadı.");
+      return;
+    }
+
+    // buyers insert
+    const { error: insErr } = await supabase.from("buyers").insert({
+      id: uid,
+      email,
+      full_name,
+      country,
+    });
+
+    if (insErr) {
+      setLoading(false);
+      alert(insErr.message);
+      return;
+    }
+
+    setLoading(false);
+    nav("/buyer");
+  }
+
   return (
-    <div className="signup">
-      <h1>Buyer Signup</h1>
-      <p>Step {step} of 3</p>
-      <form onSubmit={(e)=>{e.preventDefault(); setStep(s=>Math.min(3,s+1))}}>
-        {step===1 && <input placeholder="Company name" required />}
-        {step===2 && <input placeholder="Contact person" required />}
-        {step===3 && <input placeholder="Email" required type="email" />}
-        <div className="controls">
-          {step>1 && <button type="button" onClick={()=>setStep(s=>s-1)}>Back</button>}
-          <button type="submit">{step<3 ? 'Next' : 'Finish'}</button>
-        </div>
+    <div style={{ maxWidth: 520, margin: "40px auto", padding: 16 }}>
+      <h2>Buyer Kayıt</h2>
+      <form onSubmit={onSignup} style={{ display:"grid", gap:10 }}>
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Şifre" required />
+        <input name="full_name" type="text" placeholder="Ad Soyad (opsiyonel)" />
+        <input name="country" type="text" placeholder="Ülke (opsiyonel)" />
+        <button disabled={loading} type="submit">
+          {loading ? "Oluşturuluyor..." : "Buyer hesabı oluştur"}
+        </button>
       </form>
     </div>
-  )
+  );
 }
