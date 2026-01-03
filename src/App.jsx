@@ -1,35 +1,29 @@
-import React from 'react'
-import { Routes, Route } from 'react-router-dom'
-import Header from './components/Header'
-import Footer from './components/Footer'
-import Home from './pages/Home'
-import USD from './pages/USD'
-import PI from './pages/PI'
-import ExpoCity from './pages/ExpoCity'
-import BuyerSignup from './pages/BuyerSignup'
-import SellerSignup from './pages/SellerSignup'
-import RFQ from './pages/RFQ'
-import Search from './pages/Search'
-import Pricing from './pages/Pricing'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-export default function App(){
+import Home from "./pages/Home";
+import BuyerSignup from "./pages/BuyerSignup";
+import SellerSignup from "./pages/SellerSignup";
+import Pricing from "./pages/Pricing";
+import Search from "./pages/Search";
+import RFQ from "./pages/RFQ";
+import ExpoCity from "./pages/ExpoCity";
+import PI from "./pages/PI";
+import USD from "./pages/USD";
+
+export default function App() {
   return (
-    <div className="app-root">
-      <Header />
-      <main className="container">
-        <Routes>
-          <Route path="/" element={<Home/>} />
-          <Route path="/usd" element={<USD/>} />
-          <Route path="/pi" element={<PI/>} />
-          <Route path="/expo" element={<ExpoCity/>} />
-          <Route path="/signup/buyer" element={<BuyerSignup/>} />
-          <Route path="/signup/seller" element={<SellerSignup/>} />
-          <Route path="/rfq" element={<RFQ/>} />
-          <Route path="/search" element={<Search/>} />
-          <Route path="/pricing" element={<Pricing/>} />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/buyer/signup" element={<BuyerSignup />} />
+        <Route path="/seller/signup" element={<SellerSignup />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/rfq" element={<RFQ />} />
+        <Route path="/expocity" element={<ExpoCity />} />
+        <Route path="/pi" element={<PI />} />
+        <Route path="/usd" element={<USD />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
