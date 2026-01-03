@@ -1,6 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from './lib/supabaseClient';
 
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+const { data, error } = await supabase
+  .from('company_users')
+  .select('company_id, role, companies(name, country)')
+  .eq('user_id', supabase.auth.user().id); // or serverless session
