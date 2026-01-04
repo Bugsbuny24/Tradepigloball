@@ -31,11 +31,11 @@ export default function BuyerSignup() {
 
     // buyers insert
     const { error: insErr } = await supabase.from("buyers").insert({
-      id: uid,
-      email,
-      full_name,
-      country,
-    });
+  uid,          // ✅ RLS bununla geçer
+  email,
+  full_name,
+  country,
+});
 
     if (insErr) {
       setLoading(false);
