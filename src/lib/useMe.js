@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { supabase } from "./supabase";
+import { supabase } from "./supabaseClient";
 
-export function useMe() {
+export default function useMe() {
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
@@ -11,45 +11,52 @@ export function useMe() {
 
     async function load() {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
-      setSession(session);
 
-      if (!session?.user?.id) {
-        setProfile(null);
-        setLoading(false);
+      const { data: session } = await supabase.auth.getSession();
+      const authUser = session?.session?.user ?? null;
+
+      if (!authUser) {
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
         return;
       }
 
-      const { data, error } = await supabase
+      const { data: profileData } = await supabase
         .from("profiles")
-        .select("id, role, full_name")
-        .eq("id", session.user.id)
+        .select("*")
+        .eq("id", authUser.id)
         .single();
 
       if (!mounted) return;
-      if (error) {
-        console.error(error);
-        setProfile(null);
-      } else {
-        setProfile(data);
-      }
+
+      setUser(authUser);
+      setProfile(profileData);
       setLoading(false);
     }
 
     load();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      // reload profile after login/logout
-      load();
-    });
+    const { data: sub } = supabase.auth.onAuthStateChange(load);
 
     return () => {
       mounted = false;
-      sub?.subscription?.unsubscribe?.();
+      sub.subscription.unsubscribe();
     };
   }, []);
 
-  return { loading, session, profile };
+  const role = profile?.role ?? "guest";
+
+  return {
+    loading,
+    user,
+    profile,
+    role,
+    isOwner: role === "owner",
+    isCompany: role === "company",
+    isBuyer: role === "buyer",
+    isAuthed: !!user,
+  };
 }
