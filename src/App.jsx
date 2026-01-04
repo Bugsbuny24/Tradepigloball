@@ -4,12 +4,11 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 
 import BuyerSignup from "./pages/BuyerSignup";
+import BuyerPanel from "./pages/BuyerPanel";
 
-// Company flow
 import CompanyApply from "./pages/CompanyApply";
 import CompanyWaiting from "./pages/CompanyWaiting";
 
-// Owner
 import PlatformOwnerRoute from "./components/PlatformOwnerRoute";
 import OwnerPanel from "./pages/OwnerPanel";
 
@@ -19,15 +18,17 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
 
+      {/* Buyer */}
       <Route path="/buyer/signup" element={<BuyerSignup />} />
+      <Route path="/buyer" element={<BuyerPanel />} />
 
-      {/* Company onboarding */}
-      <Route path="/company/apply" element={<CompanyApply />} />
+      {/* Company */}
+      <Route path="/apply" element={<CompanyApply />} />
       <Route path="/company/waiting" element={<CompanyWaiting />} />
 
-      {/* Owner panel */}
+      {/* Owner (gizli panel) */}
       <Route
-        path="/panel"
+        path="/owner"
         element={
           <PlatformOwnerRoute>
             <OwnerPanel />
