@@ -6,57 +6,40 @@ export default function useMe() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
 
-  useEffect(() => {
-    let mounted = true;
+  async function loadMe() {
+    setLoading(true);
 
-    async function load() {
-      setLoading(true);
+    const { data: auth } = await supabase.auth.getUser();
+    const u = auth?.user ?? null;
+    setUser(u);
 
-      const { data: session } = await supabase.auth.getSession();
-      const authUser = session?.session?.user ?? null;
-
-      if (!authUser) {
-        if (mounted) {
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-        }
-        return;
-      }
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .single();
-
-      if (!mounted) return;
-
-      setUser(authUser);
-      setProfile(profileData);
+    if (!u) {
+      setProfile(null);
       setLoading(false);
+      return;
     }
 
-    load();
+    const { data: p, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", u.id)
+      .single();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(load);
+    if (!error) setProfile(p);
+    else setProfile(null);
 
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadMe();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      loadMe();
+    });
+
+    return () => sub?.subscription?.unsubscribe?.();
   }, []);
 
-  const role = profile?.role ?? "guest";
-
-  return {
-    loading,
-    user,
-    profile,
-    role,
-    isOwner: role === "owner",
-    isCompany: role === "company",
-    isBuyer: role === "buyer",
-    isAuthed: !!user,
-  };
+  return { loading, user, profile, reload: loadMe };
 }
