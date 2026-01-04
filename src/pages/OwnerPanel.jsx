@@ -2,96 +2,95 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 export default function OwnerPanel() {
-  const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  async function load() {
+  const load = async () => {
     setLoading(true);
     setErr("");
 
     const { data, error } = await supabase
       .from("company_profiles")
-      .select("user_id, company_name, country, city, website, status, is_verified, owner_id, created_at, updated_at")
+      .select("user_id, company_name, country, city, tax_no, status, created_at")
+      .eq("status", "pending")
       .order("created_at", { ascending: false });
 
     if (error) setErr(error.message);
-    else setRows(data ?? []);
-
+    setRows(data || []);
     setLoading(false);
-  }
+  };
 
-  useEffect(() => { load(); }, []);
-
-  async function approve(user_id) {
-    const { error } = await supabase
-      .from("company_profiles")
-      .update({
-        status: "approved",
-        is_verified: true,
-        owner_id: (await supabase.auth.getUser()).data.user.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user_id);
-
-    if (error) return alert(error.message);
-    alert("Approved ✅");
+  useEffect(() => {
     load();
-  }
+  }, []);
 
-  async function reject(user_id) {
-    const ok = confirm("Reject? (status=rejected)");
-    if (!ok) return;
+  const approve = async (user_id) => {
+    setErr("");
+    const { data: auth } = await supabase.auth.getUser();
+    const ownerUid = auth?.user?.id || null;
 
     const { error } = await supabase
       .from("company_profiles")
-      .update({
-        status: "rejected",
-        is_verified: false,
-        owner_id: (await supabase.auth.getUser()).data.user.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user_id);
+      .update({ status: "approved", is_verified: true, owner_id: ownerUid })
+      .eq("user_id", user_id)
+      .eq("status", "pending");
 
-    if (error) return alert(error.message);
-    alert("Rejected ❌");
+    if (error) return setErr(error.message);
     load();
-  }
+  };
+
+  const reject = async (user_id) => {
+    const reason = prompt("Reject reason (opsiyonel):") || null;
+
+    const { data: auth } = await supabase.auth.getUser();
+    const ownerUid = auth?.user?.id || null;
+
+    const { error } = await supabase
+      .from("company_profiles")
+      .update({ status: "rejected", is_verified: false, owner_id: ownerUid, reject_reason: reason })
+      .eq("user_id", user_id)
+      .eq("status", "pending");
+
+    if (error) return setErr(error.message);
+    load();
+  };
 
   return (
-    <div style={{ padding: 20, maxWidth: 1000, margin: "0 auto" }}>
-      <h2>Owner Panel • Company Approvals</h2>
+    <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
+      <h2>Owner Panel</h2>
+      <p>Pending company başvuruları</p>
 
-      <div style={{ margin: "12px 0" }}>
-        <button onClick={load} disabled={loading}>Refresh</button>
-      </div>
-
-      {err && <div style={{ color: "crimson", marginBottom: 12 }}>Error: {err}</div>}
-      {loading && <div>Loading…</div>}
-
-      {!loading && rows.length === 0 && <div>No companies yet.</div>}
-
-      {!loading && rows.map((c) => (
-        <div key={c.user_id} style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12, marginBottom: 10 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div><b>{c.company_name}</b> <span style={{ opacity: 0.7 }}>({c.status})</span></div>
-              <div style={{ fontSize: 12, opacity: 0.75 }}>user_id: {c.user_id}</div>
-              <div style={{ fontSize: 12, opacity: 0.75 }}>
-                {c.country || "-"} / {c.city || "-"} • {c.website || "-"}
-              </div>
-              <div style={{ fontSize: 12, opacity: 0.6 }}>
-                created: {new Date(c.created_at).toLocaleString()} • updated: {new Date(c.updated_at).toLocaleString()}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 180 }}>
-              <button onClick={() => approve(c.user_id)} disabled={c.status !== "pending"}>Approve</button>
-              <button onClick={() => reject(c.user_id)} disabled={c.status !== "pending"}>Reject</button>
-            </div>
-          </div>
+      {err && (
+        <div style={{ background: "#ffefef", padding: 12, borderRadius: 8, marginTop: 12 }}>
+          {err}
         </div>
-      ))}
+      )}
+
+      <button onClick={load} style={{ marginTop: 12 }}>Refresh</button>
+
+      {loading ? (
+        <div style={{ marginTop: 16 }}>Loading...</div>
+      ) : rows.length === 0 ? (
+        <div style={{ marginTop: 16 }}>Bekleyen başvuru yok.</div>
+      ) : (
+        <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
+          {rows.map((r) => (
+            <div key={r.user_id} style={{ border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
+              <div><b>{r.company_name}</b></div>
+              <div style={{ opacity: 0.8 }}>
+                {r.country || "-"} / {r.city || "-"} • Tax: {r.tax_no || "-"}
+              </div>
+              <div style={{ opacity: 0.7, marginTop: 6 }}>user_id: {r.user_id}</div>
+
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <button onClick={() => approve(r.user_id)}>Approve</button>
+                <button onClick={() => reject(r.user_id)}>Reject</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
