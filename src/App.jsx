@@ -13,10 +13,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
-
       <Route path="/buyer/signup" element={<BuyerSignup />} />
       <Route path="/seller/signup" element={<SellerSignup />} />
-
       <Route path="/buyer" element={<BuyerPanel />} />
       <Route path="/seller" element={<SellerPanel />} />
       <Route path="/seller/waiting" element={<SellerWaiting />} />
