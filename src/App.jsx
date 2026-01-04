@@ -1,5 +1,4 @@
 import { Routes, Route } from "react-router-dom";
-
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import BuyerSignup from "./pages/BuyerSignup";
@@ -24,6 +23,7 @@ export default function App() {
       <Route path="/seller" element={<SellerPanel />} />
       <Route path="/seller/waiting" element={<SellerWaiting />} />
 
+      {/* Gizli Owner Panel (link yok, sadece URL ile) */}
       <Route
         path="/owner"
         element={
