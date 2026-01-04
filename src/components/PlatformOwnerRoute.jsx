@@ -1,38 +1,16 @@
-import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import useMe from "../lib/useMe";
 
 export default function PlatformOwnerRoute({ children }) {
-  const [loading, setLoading] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
+  const { loading, user, profile } = useMe();
 
-  useEffect(() => {
-    const checkOwner = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+  if (loading) return <div style={{ padding: 24, color: "#fff" }}>Loading...</div>;
 
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+  // login yoksa -> login
+  if (!user) return <Navigate to="/login" replace />;
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (!error && data?.role === "owner") {
-        setIsOwner(true);
-      }
-
-      setLoading(false);
-    };
-
-    checkOwner();
-  }, []);
-
-  if (loading) return <div style={{ padding: 40 }}>Loading...</div>;
-  if (!isOwner) return <Navigate to="/" replace />;
+  // owner değilse -> ana sayfa
+  if (profile?.role !== "owner") return <Navigate to="/" replace />;
 
   return children;
 }
