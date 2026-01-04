@@ -1,11 +1,11 @@
-* {
-  box-sizing: border-box;
+body {
   margin: 0;
   padding: 0;
+  background-color: #0f0f1e; /* Dark blue background */
+  color: white;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0b1020;
-  color: #ffffff;
+#root {
+  min-height: 100vh;
 }
