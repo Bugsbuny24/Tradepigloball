@@ -1,38 +1,12 @@
-import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
+import useMe from "../lib/useMe";
 
 export default function PlatformOwnerRoute({ children }) {
-  const [loading, setLoading] = useState(true);
-  const [ok, setOk] = useState(false);
+  const { me, loading } = useMe();
 
-  useEffect(() => {
-    let alive = true;
+  if (loading) return <div style={{ padding: 24 }}>Loading...</div>;
+  if (!me?.id) return <Navigate to="/login" replace />;
+  if (me?.role !== "owner") return <div style={{ padding: 24 }}>Yetkisiz.</div>;
 
-    (async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData?.user;
-      if (!user) {
-        if (alive) { setOk(false); setLoading(false); }
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (alive) {
-        setOk(!error && String(data?.role) === "owner");
-        setLoading(false);
-      }
-    })();
-
-    return () => { alive = false; };
-  }, []);
-
-  if (loading) return <div style={{ padding: 24 }}>Checking owner…</div>;
-  if (!ok) return <Navigate to="/login" replace />;
   return children;
 }
