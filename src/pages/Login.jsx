@@ -1,82 +1,83 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { getBuyerProfile, getMyCompany } from "../lib/session";
 
 export default function Login() {
   const nav = useNavigate();
-  const [sp] = useSearchParams();
-  const as = sp.get("as"); // buyer/seller/null
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
-  useEffect(() => {
-    // Zaten login ise yönlendir
-    supabase.auth.getSession().then(async ({ data }) => {
-      const s = data.session;
-      if (!s?.user) return;
-      await routeByRole(s.user.id);
-    });
-    // eslint-disable-next-line
-  }, []);
-
-  async function routeByRole(uid) {
-    // Eğer ?as=buyer diyorsa buyer kontrol et
-    if (as === "buyer") {
-      const buyer = await getBuyerProfile(uid);
-      if (buyer) return nav("/buyer");
-      return nav("/buyer/signup"); // buyer profili yoksa kayıt
-    }
-
-    if (as === "seller") {
-      const res = await getMyCompany();
-      if (res?.has_company) return nav("/seller");
-      return nav("/seller/waiting");
-    }
-
-    // as yoksa otomatik karar:
-    // önce company var mı bak (seller), yoksa buyer var mı bak
-    const res = await getMyCompany().catch(() => null);
-    if (res?.has_company) return nav("/seller");
-
-    const buyer = await getBuyerProfile(uid).catch(() => null);
-    if (buyer) return nav("/buyer");
-
-    // hiçbir şey yoksa landing
-    return nav("/");
-  }
-
-  async function onLogin(e) {
+  const onLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setErr("");
+    setBusy(true);
 
-    const email = e.target.email.value.trim();
-    const password = e.target.password.value;
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setLoading(false);
-      alert(error.message);
+      setErr(error.message || "Login failed");
+      setBusy(false);
       return;
     }
 
-    await routeByRole(data.user.id);
-    setLoading(false);
-  }
+    const uid = data?.user?.id;
+    if (!uid) {
+      setErr("No user id");
+      setBusy(false);
+      return;
+    }
+
+    const { data: p } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", uid)
+      .single();
+
+    // owner -> /owner, değilse -> /
+    if (p?.role === "owner") nav("/owner", { replace: true });
+    else nav("/", { replace: true });
+
+    setBusy(false);
+  };
 
   return (
-    <div style={{ maxWidth: 420, margin: "40px auto", padding: 16 }}>
-      <h2>Giriş</h2>
-      <form onSubmit={onLogin} style={{ display:"grid", gap:10 }}>
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Şifre" required />
-        <button disabled={loading} type="submit">
-          {loading ? "Giriş..." : "Giriş yap"}
+    <div style={{ padding: 24, color: "#fff" }}>
+      <h2>Login</h2>
+
+      <form onSubmit={onLogin} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="email"
+          style={{ padding: 12 }}
+        />
+        <input
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="password"
+          type="password"
+          style={{ padding: 12 }}
+        />
+
+        <button disabled={busy} style={{ padding: 12 }}>
+          {busy ? "..." : "Giriş yap"}
         </button>
+
+        {err ? <div style={{ color: "#ff8080" }}>{err}</div> : null}
       </form>
 
-      <div style={{ marginTop: 16, display:"flex", gap:10, flexWrap:"wrap" }}>
-        <button onClick={() => nav("/buyer/signup")}>Buyer Kayıt</button>
-        <button onClick={() => nav("/seller/signup")}>Seller Kayıt</button>
+      <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+        <button onClick={() => nav("/company/apply")} style={{ padding: 10 }}>
+          Company Apply
+        </button>
+        <button onClick={() => nav("/buyer/signup")} style={{ padding: 10 }}>
+          Buyer Signup
+        </button>
       </div>
     </div>
   );
