@@ -6,26 +6,39 @@ export default function OwnerPanel() {
   const [items, setItems] = useState([]);
   const [msg, setMsg] = useState("");
 
-  const load = async () => {
-    setLoading(true);
-    setMsg("");
-
-    const { data, error } = await supabase
-      .from("company_profiles")
-      .select("user_id, company_name, status, is_verified, created_at")
-      .order("created_at", { ascending: false });
-
-    if (error) setMsg(error.message);
-    setItems(data || []);
-    setLoading(false);
-  };
-
+  // TEK useEffect yeterli
   useEffect(() => {
-    load();
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setMsg("");
+
+      const { data, error } = await supabase
+        .from("company_profiles")
+        .select("user_id, company_name, status, is_verified, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Supabase error:", error);
+        setMsg(error.message);
+        setItems([]);
+      } else {
+        setItems(data || []);
+      }
+    } catch (err) {
+      console.error("Load error:", err);
+      setMsg("Beklenmeyen bir hata oluştu");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const approve = async (user_id) => {
     setMsg("");
+    
     const { data: auth } = await supabase.auth.getUser();
     const ownerId = auth?.user?.id;
 
@@ -39,18 +52,21 @@ export default function OwnerPanel() {
       })
       .eq("user_id", user_id);
 
-    // kullanıcıyı company yap
     const { error: e2 } = await supabase
       .from("profiles")
       .update({ user_type: "company" })
       .eq("id", user_id);
 
-    if (e1 || e2) setMsg((e1 || e2).message);
-    await load();
+    if (e1 || e2) {
+      setMsg((e1 || e2).message);
+    }
+    
+    await loadData(); // Reload data
   };
 
   const reject = async (user_id) => {
     setMsg("");
+    
     const { data: auth } = await supabase.auth.getUser();
     const ownerId = auth?.user?.id;
 
@@ -64,17 +80,34 @@ export default function OwnerPanel() {
       })
       .eq("user_id", user_id);
 
-    if (error) setMsg(error.message);
-    await load();
+    if (error) {
+      setMsg(error.message);
+    }
+    
+    await loadData(); // Reload data
   };
+
+  if (loading) {
+    return (
+      <div style={{ padding: 24, color: "#fff", textAlign: "center" }}>
+        <h2>Owner Panel</h2>
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 24, color: "#fff" }}>
       <h2>Owner Panel</h2>
-      {msg ? <div style={{ color: "#ff8080", marginBottom: 12 }}>{msg}</div> : null}
+      
+      {msg && (
+        <div style={{ color: "#ff0000", marginBottom: 12 }}>
+          {msg}
+        </div>
+      )}
 
-      {loading ? (
-        <div>Loading...</div>
+      {items.length === 0 ? (
+        <p>No pending company applications.</p>
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
           {items.map((x) => (
@@ -86,15 +119,26 @@ export default function OwnerPanel() {
                 padding: 12,
               }}
             >
-              <div><b>{x.company_name}</b></div>
-              <div style={{ opacity: 0.9 }}>user_id: {x.user_id}</div>
-              <div>Status: {x.status} | Verified: {String(x.is_verified)}</div>
-
+              <div>
+                <b>{x.company_name}</b>
+              </div>
+              <div style={{ opacity: 0.9 }}>
+                User ID: {x.user_id}
+              </div>
+              <div>
+                Status: {x.status} | Verified: {String(x.is_verified)}
+              </div>
               <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-                <button onClick={() => approve(x.user_id)} style={{ padding: 8 }}>
+                <button
+                  onClick={() => approve(x.user_id)}
+                  style={{ padding: "8px 16px" }}
+                >
                   Approve
                 </button>
-                <button onClick={() => reject(x.user_id)} style={{ padding: 8 }}>
+                <button
+                  onClick={() => reject(x.user_id)}
+                  style={{ padding: "8px 16px" }}
+                >
                   Reject
                 </button>
               </div>
