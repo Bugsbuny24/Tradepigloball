@@ -2,60 +2,37 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
-/**
- * /owner için koruma:
- * platform_owners tablosunda user_id kaydı olan erişir.
- */
 export default function PlatformOwnerRoute({ children }) {
   const [loading, setLoading] = useState(true);
-  const [allowed, setAllowed] = useState(false);
+  const [ok, setOk] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    let alive = true;
 
     (async () => {
-      try {
-        const { data: userRes, error: userErr } = await supabase.auth.getUser();
-        const user = userRes?.user;
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        if (alive) { setOk(false); setLoading(false); }
+        return;
+      }
 
-        if (cancelled) return;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
 
-        if (userErr || !user) {
-          setAllowed(false);
-          setLoading(false);
-          return;
-        }
-
-        const { data: row, error: ownerErr } = await supabase
-          .from("platform_owners")
-          .select("user_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (cancelled) return;
-
-        setAllowed(!ownerErr && !!row);
-        setLoading(false);
-      } catch (e) {
-        if (cancelled) return;
-        setAllowed(false);
+      if (alive) {
+        setOk(!error && String(data?.role) === "owner");
         setLoading(false);
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { alive = false; };
   }, []);
 
-  if (loading) {
-    return (
-      <div style={{ padding: 24, color: "#fff", fontFamily: "system-ui" }}>
-        Checking owner access...
-      </div>
-    );
-  }
-
-  if (!allowed) return <Navigate to="/login" replace />;
+  if (loading) return <div style={{ padding: 24 }}>Checking owner…</div>;
+  if (!ok) return <Navigate to="/login" replace />;
   return children;
 }
