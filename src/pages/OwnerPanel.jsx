@@ -2,22 +2,21 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 export default function OwnerPanel() {
-  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [items, setItems] = useState([]);
+  const [msg, setMsg] = useState("");
 
   const load = async () => {
     setLoading(true);
-    setErr("");
+    setMsg("");
 
     const { data, error } = await supabase
       .from("company_profiles")
-      .select("user_id, company_name, country, city, tax_no, status, created_at")
-      .eq("status", "pending")
+      .select("user_id, company_name, status, is_verified, created_at")
       .order("created_at", { ascending: false });
 
-    if (error) setErr(error.message);
-    setRows(data || []);
+    if (error) setMsg(error.message);
+    setItems(data || []);
     setLoading(false);
   };
 
@@ -26,66 +25,78 @@ export default function OwnerPanel() {
   }, []);
 
   const approve = async (user_id) => {
-    setErr("");
+    setMsg("");
     const { data: auth } = await supabase.auth.getUser();
-    const ownerUid = auth?.user?.id || null;
+    const ownerId = auth?.user?.id;
 
-    const { error } = await supabase
+    const { error: e1 } = await supabase
       .from("company_profiles")
-      .update({ status: "approved", is_verified: true, owner_id: ownerUid })
-      .eq("user_id", user_id)
-      .eq("status", "pending");
+      .update({
+        status: "approved",
+        is_verified: true,
+        owner_id: ownerId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", user_id);
 
-    if (error) return setErr(error.message);
-    load();
+    // kullanıcıyı company yap
+    const { error: e2 } = await supabase
+      .from("profiles")
+      .update({ user_type: "company" })
+      .eq("id", user_id);
+
+    if (e1 || e2) setMsg((e1 || e2).message);
+    await load();
   };
 
   const reject = async (user_id) => {
-    const reason = prompt("Reject reason (opsiyonel):") || null;
-
+    setMsg("");
     const { data: auth } = await supabase.auth.getUser();
-    const ownerUid = auth?.user?.id || null;
+    const ownerId = auth?.user?.id;
 
     const { error } = await supabase
       .from("company_profiles")
-      .update({ status: "rejected", is_verified: false, owner_id: ownerUid, reject_reason: reason })
-      .eq("user_id", user_id)
-      .eq("status", "pending");
+      .update({
+        status: "rejected",
+        is_verified: false,
+        owner_id: ownerId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", user_id);
 
-    if (error) return setErr(error.message);
-    load();
+    if (error) setMsg(error.message);
+    await load();
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
+    <div style={{ padding: 24, color: "#fff" }}>
       <h2>Owner Panel</h2>
-      <p>Pending company başvuruları</p>
-
-      {err && (
-        <div style={{ background: "#ffefef", padding: 12, borderRadius: 8, marginTop: 12 }}>
-          {err}
-        </div>
-      )}
-
-      <button onClick={load} style={{ marginTop: 12 }}>Refresh</button>
+      {msg ? <div style={{ color: "#ff8080", marginBottom: 12 }}>{msg}</div> : null}
 
       {loading ? (
-        <div style={{ marginTop: 16 }}>Loading...</div>
-      ) : rows.length === 0 ? (
-        <div style={{ marginTop: 16 }}>Bekleyen başvuru yok.</div>
+        <div>Loading...</div>
       ) : (
-        <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
-          {rows.map((r) => (
-            <div key={r.user_id} style={{ border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
-              <div><b>{r.company_name}</b></div>
-              <div style={{ opacity: 0.8 }}>
-                {r.country || "-"} / {r.city || "-"} • Tax: {r.tax_no || "-"}
-              </div>
-              <div style={{ opacity: 0.7, marginTop: 6 }}>user_id: {r.user_id}</div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {items.map((x) => (
+            <div
+              key={x.user_id}
+              style={{
+                border: "1px solid rgba(255,255,255,.15)",
+                borderRadius: 10,
+                padding: 12,
+              }}
+            >
+              <div><b>{x.company_name}</b></div>
+              <div style={{ opacity: 0.9 }}>user_id: {x.user_id}</div>
+              <div>Status: {x.status} | Verified: {String(x.is_verified)}</div>
 
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <button onClick={() => approve(r.user_id)}>Approve</button>
-                <button onClick={() => reject(r.user_id)}>Reject</button>
+              <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                <button onClick={() => approve(x.user_id)} style={{ padding: 8 }}>
+                  Approve
+                </button>
+                <button onClick={() => reject(x.user_id)} style={{ padding: 8 }}>
+                  Reject
+                </button>
               </div>
             </div>
           ))}
