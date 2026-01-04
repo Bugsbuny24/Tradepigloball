@@ -18,15 +18,13 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
 
-      {/* Buyer */}
       <Route path="/buyer/signup" element={<BuyerSignup />} />
       <Route path="/buyer" element={<BuyerPanel />} />
 
-      {/* Company */}
-      <Route path="/apply" element={<CompanyApply />} />
+      <Route path="/company/apply" element={<CompanyApply />} />
       <Route path="/company/waiting" element={<CompanyWaiting />} />
 
-      {/* Owner (gizli panel) */}
+      {/* Owner link: /owner */}
       <Route
         path="/owner"
         element={
