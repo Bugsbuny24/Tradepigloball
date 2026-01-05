@@ -6,14 +6,19 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    if (error) alert(error.message);
-    else alert("Giriş OK");
-  };
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  // BAŞARILI GİRİŞ
+  window.location.href = "/";
+};
 
   return (
     <div style={{ padding: 20 }}>
