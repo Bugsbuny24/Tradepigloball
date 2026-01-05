@@ -4,26 +4,19 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import OwnerPanel from "./pages/OwnerPanel";
 
-import PlatformOwnerRoute from "./components/PlatformOwnerRoute";
-
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
 
+        {/* 🔑 LOGIN ROUTE */}
         <Route path="/login" element={<Login />} />
 
-        <Route
-          path="/owner"
-          element={
-            <PlatformOwnerRoute>
-              <OwnerPanel />
-            </PlatformOwnerRoute>
-          }
-        />
+        {/* OWNER PANEL */}
+        <Route path="/owner" element={<OwnerPanel />} />
 
-        {/* default */}
+        {/* HER ŞEY ELSE ANA SAYFA */}
         <Route path="*" element={<Home />} />
       </Routes>
     </BrowserRouter>
