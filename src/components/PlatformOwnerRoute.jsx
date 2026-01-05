@@ -19,6 +19,7 @@ export default function PlatformOwnerRoute({ children }) {
 
         if (userErr) console.error("getUser error:", userErr);
 
+        // ✅ session YOK
         if (!user) {
           if (alive) {
             setHasSession(false);
@@ -28,6 +29,7 @@ export default function PlatformOwnerRoute({ children }) {
           return;
         }
 
+        // ✅ session VAR
         if (alive) setHasSession(true);
 
         // ✅ owner check: platform_owners tablosunda var mı?
@@ -37,9 +39,7 @@ export default function PlatformOwnerRoute({ children }) {
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (error) {
-          console.error("owner check error:", error);
-        }
+        if (error) console.error("owner check error:", error);
 
         if (alive) {
           setAllowed(!!data && !error);
@@ -56,7 +56,6 @@ export default function PlatformOwnerRoute({ children }) {
     };
 
     check();
-
     const { data: sub } = supabase.auth.onAuthStateChange(() => check());
 
     return () => {
@@ -66,12 +65,7 @@ export default function PlatformOwnerRoute({ children }) {
   }, []);
 
   if (loading) return <div style={{ padding: 24 }}>Loading...</div>;
-
-  // session yoksa: login sayfasına ya da ana sayfaya yönlendir (sen nasıl istiyorsan)
   if (!hasSession) return <Navigate to="/" replace />;
-
-  // session var ama owner değilse: ana sayfaya
   if (!allowed) return <Navigate to="/" replace />;
-
   return children;
 }
