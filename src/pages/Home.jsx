@@ -8,7 +8,7 @@ export default function Home() {
     <div className="home-container">
       <div className="background-overlay"></div>
 
-      {/* USD MODE */}
+      {/* USD MODE (KAPALI) */}
       <div className="mode-card usd-card">
         <div className="card-content">
           <div className="card-icon">
@@ -22,11 +22,8 @@ export default function Home() {
           <div className="card-info">
             <h1 className="mode-title">USD MODE</h1>
             <p className="mode-subtitle">Global B2B Trade</p>
-            <button
-              className="mode-button usd-button"
-              onClick={() => navigate("/usd")}
-            >
-              Enter USD Mode
+            <button className="mode-button usd-button" disabled>
+              USD MODE DISABLED
             </button>
           </div>
         </div>
@@ -57,7 +54,7 @@ export default function Home() {
 
               <button
                 className="mode-button pi-button-secondary"
-                onClick={() => navigate("/pi/rfq")}
+                onClick={() => navigate("/pi/rfq/create")}
               >
                 Create RFQ
               </button>
@@ -97,21 +94,24 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 🔑 LOGIN BUTTON (TEK BUTON - DOĞRU) */}
+      {/* LOGIN BUTTON (DOĞRU HALİ) */}
       <div style={{ textAlign: "center", marginTop: 50 }}>
-  <button
-    onClick={() => navigate("/login")}
-    style={{
-      padding: "14px 36px",
-      borderRadius: 18,
-      background: "linear-gradient(135deg, #6c4cff, #00e0ff)",
-      color: "#fff",
-      fontSize: 18,
-      border: "none",
-      cursor: "pointer",
-      boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
-    }}
-  >
-    Giriş Yap
-  </button>
-</div>
+        <button
+          onClick={() => navigate("/login")}
+          style={{
+            padding: "14px 36px",
+            borderRadius: 18,
+            background: "linear-gradient(135deg, #6c4cff, #00e0ff)",
+            color: "#fff",
+            fontSize: 18,
+            border: "none",
+            cursor: "pointer",
+            boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+          }}
+        >
+          Giriş Yap
+        </button>
+      </div>
+    </div>
+  );
+}
