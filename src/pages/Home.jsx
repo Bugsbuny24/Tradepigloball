@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
-import './Home.css';
+import { useNavigate } from "react-router-dom";
+import "./Home.css";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -7,8 +7,8 @@ export default function Home() {
   return (
     <div className="home-container">
       <div className="background-overlay"></div>
-      
-      {/* USD MODE Card */}
+
+      {/* USD MODE */}
       <div className="mode-card usd-card">
         <div className="card-content">
           <div className="card-icon">
@@ -18,13 +18,13 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
+
           <div className="card-info">
             <h1 className="mode-title">USD MODE</h1>
             <p className="mode-subtitle">Global B2B Trade</p>
-            <button 
+            <button
               className="mode-button usd-button"
-              onClick={() => navigate('/usd-mode')}
+              onClick={() => navigate("/usd")}
             >
               Enter USD Mode
             </button>
@@ -32,7 +32,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* PI MODE Card */}
+      {/* PI MODE */}
       <div className="mode-card pi-card">
         <div className="card-content">
           <div className="card-icon">
@@ -42,20 +42,22 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
+
           <div className="card-info">
             <h1 className="mode-title">PI MODE</h1>
             <p className="mode-subtitle">Pi-Ecosystem B2B Showroom</p>
+
             <div className="button-group">
-              <button 
+              <button
                 className="mode-button pi-button"
-                onClick={() => navigate('/pi-mode/products')}
+                onClick={() => navigate("/pi/products")}
               >
                 Browse Products
               </button>
-              <button 
+
+              <button
                 className="mode-button pi-button-secondary"
-                onClick={() => navigate('/pi-mode/rfq')}
+                onClick={() => navigate("/pi/rfq")}
               >
                 Create RFQ
               </button>
@@ -64,7 +66,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* EXPO CITY Card */}
+      {/* EXPO CITY */}
       <div className="mode-card expo-card">
         <div className="card-content">
           <div className="card-icon">
@@ -73,26 +75,45 @@ export default function Home() {
                 <div className="building"></div>
                 <div className="building tall"></div>
                 <div className="building"></div>
-                <div className="flags">
-                  <span className="flag">🇹🇷</span>
-                  <span className="flag">🇺🇸</span>
-                  <span className="flag">🇩🇪</span>
-                </div>
+              </div>
+              <div className="flags">
+                <span className="flag">🇹🇷</span>
+                <span className="flag">🇺🇸</span>
+                <span className="flag">🇩🇪</span>
               </div>
             </div>
           </div>
-          
+
           <div className="card-info">
             <h1 className="mode-title">EXPO CITY</h1>
             <p className="mode-subtitle">Digital Trade Pavilion</p>
-            <button 
+            <button
               className="mode-button expo-button"
-              onClick={() => navigate('/expo-city')}
+              onClick={() => navigate("/expo-city")}
             >
               Enter Expo City
             </button>
           </div>
         </div>
+      </div>
+
+      {/* 🔑 LOGIN BUTTON (EN GARANTİ YOL) */}
+      <div style={{ textAlign: "center", marginTop: 50 }}>
+        <button
+          onClick={() => navigate("/login")}
+          style={{
+            padding: "14px 36px",
+            borderRadius: 18,
+            background: "linear-gradient(135deg, #6c4cff, #00e0ff)",
+            color: "#fff",
+            fontSize: 18,
+            border: "none",
+            cursor: "pointer",
+            boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+          }}
+        >
+          Giriş Yap
+        </button>
       </div>
     </div>
   );
