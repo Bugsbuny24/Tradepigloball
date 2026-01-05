@@ -1,4 +1,3 @@
-// src/lib/session.js
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
@@ -6,36 +5,36 @@ const SessionContext = createContext(null);
 
 export function SessionProvider({ children }) {
   const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let alive = true;
-
     supabase.auth.getSession().then(({ data }) => {
-      if (!alive) return;
-      setSession(data.session ?? null);
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
       setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession ?? null);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        setLoading(false);
+      }
+    );
 
     return () => {
-      alive = false;
-      sub?.subscription?.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
   return (
-    <SessionContext.Provider value={{ session, loading }}>
+    <SessionContext.Provider value={{ session, user, loading }}>
       {children}
     </SessionContext.Provider>
   );
 }
 
 export function useSession() {
-  const ctx = useContext(SessionContext);
-  if (!ctx) throw new Error("useSession must be used inside SessionProvider");
-  return ctx;
+  return useContext(SessionContext);
 }
