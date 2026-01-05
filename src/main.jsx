@@ -1,15 +1,15 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import App from "./App.jsx";
 import { BrowserRouter } from "react-router-dom";
-import App from "./App";
-import { AuthProvider } from "./lib/auth";
+import { SessionProvider } from "./lib/session";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
+      <SessionProvider>
         <App />
-      </AuthProvider>
+      </SessionProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
