@@ -97,7 +97,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 🔑 LOGIN BUTTON (EN GARANTİ YOL) */}
+      {/* 🔑 LOGIN BUTTON (TEK BUTON - DOĞRU) */}
       <div style={{ textAlign: "center", marginTop: 50 }}>
         <button
           onClick={() => navigate("/login")}
@@ -112,6 +112,9 @@ export default function Home() {
             boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
           }}
         >
-          <a href="/login">
-  <button>Giriş Yap</button>
-</a>
+          Giriş Yap
+        </button>
+      </div>
+    </div>
+  );
+}
