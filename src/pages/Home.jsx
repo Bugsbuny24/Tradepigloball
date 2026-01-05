@@ -112,9 +112,6 @@ export default function Home() {
             boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
           }}
         >
-          Giriş Yap
-        </button>
-      </div>
-    </div>
-  );
-}
+          <a href="/login">
+  <button>Giriş Yap</button>
+</a>
