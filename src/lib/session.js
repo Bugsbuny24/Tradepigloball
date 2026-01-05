@@ -1,24 +1,41 @@
+// src/lib/session.js
+import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
-// Buyer mı? -> buyers tablosunda id=auth.uid var mı?
-export async function getBuyerProfile(uid) {
-  const { data, error } = await supabase
-    .from("buyers")
-    .select("id,email,full_name,country,created_at")
-    .eq("id", uid)
-    .maybeSingle();
+const SessionContext = createContext(null);
 
-  if (error) throw error;
-  return data; // null olabilir
+export function SessionProvider({ children }) {
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!alive) return;
+      setSession(data.session ?? null);
+      setLoading(false);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession ?? null);
+    });
+
+    return () => {
+      alive = false;
+      sub?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  return (
+    <SessionContext.Provider value={{ session, loading }}>
+      {children}
+    </SessionContext.Provider>
+  );
 }
 
-// Seller mı? -> edge function get-my-company
-export async function getMyCompany() {
-  const { data, error } = await supabase.functions.invoke("get-my-company");
-  if (error) throw error;
-  return data; // {ok, has_company, company, membership}
-}
-
-export async function signOut() {
-  await supabase.auth.signOut();
+export function useSession() {
+  const ctx = useContext(SessionContext);
+  if (!ctx) throw new Error("useSession must be used inside SessionProvider");
+  return ctx;
 }
