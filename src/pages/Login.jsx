@@ -3,82 +3,64 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Login() {
-  const nav = useNavigate();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
 
   const onLogin = async (e) => {
     e.preventDefault();
-    setErr("");
-    setBusy(true);
+    setMsg("");
+    setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setErr(error.message || "Login failed");
-      setBusy(false);
-      return;
+      if (error) {
+        setMsg(error.message);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ login olduysan owner sayfasına git
+      // (owner değilse zaten PlatformOwnerRoute seni /'a geri atacak)
+      navigate("/owner", { replace: true });
+    } catch (err) {
+      console.error(err);
+      setMsg("Login failed.");
+    } finally {
+      setLoading(false);
     }
-
-    const uid = data?.user?.id;
-    if (!uid) {
-      setErr("No user id");
-      setBusy(false);
-      return;
-    }
-
-    const { data: p } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", uid)
-      .single();
-
-    // owner -> /owner, değilse -> /
-    if (p?.role === "owner") nav("/owner", { replace: true });
-    else nav("/", { replace: true });
-
-    setBusy(false);
   };
 
   return (
-    <div style={{ padding: 24, color: "#fff" }}>
+    <div style={{ padding: 24, maxWidth: 420, margin: "0 auto" }}>
       <h2>Login</h2>
 
-      <form onSubmit={onLogin} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
+      <form onSubmit={onLogin} style={{ display: "grid", gap: 12 }}>
         <input
+          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="email"
-          style={{ padding: 12 }}
+          autoComplete="email"
         />
         <input
+          placeholder="Password"
+          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="password"
-          type="password"
-          style={{ padding: 12 }}
+          autoComplete="current-password"
         />
-
-        <button disabled={busy} style={{ padding: 12 }}>
-          {busy ? "..." : "Giriş yap"}
+        <button disabled={loading} type="submit">
+          {loading ? "Logging in..." : "Login"}
         </button>
-
-        {err ? <div style={{ color: "#ff8080" }}>{err}</div> : null}
       </form>
 
-      <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
-        <button onClick={() => nav("/company/apply")} style={{ padding: 10 }}>
-          Company Apply
-        </button>
-        <button onClick={() => nav("/buyer/signup")} style={{ padding: 10 }}>
-          Buyer Signup
-        </button>
-      </div>
+      {msg ? <p style={{ marginTop: 12 }}>{msg}</p> : null}
     </div>
   );
 }
