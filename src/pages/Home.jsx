@@ -99,22 +99,19 @@ export default function Home() {
 
       {/* 🔑 LOGIN BUTTON (TEK BUTON - DOĞRU) */}
       <div style={{ textAlign: "center", marginTop: 50 }}>
-        <button
-          onClick={() => navigate("/login")}
-          style={{
-            padding: "14px 36px",
-            borderRadius: 18,
-            background: "linear-gradient(135deg, #6c4cff, #00e0ff)",
-            color: "#fff",
-            fontSize: 18,
-            border: "none",
-            cursor: "pointer",
-            boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
-          }}
-        >
-          Giriş Yap
-        </button>
-      </div>
-    </div>
-  );
-}
+  <button
+    onClick={() => navigate("/login")}
+    style={{
+      padding: "14px 36px",
+      borderRadius: 18,
+      background: "linear-gradient(135deg, #6c4cff, #00e0ff)",
+      color: "#fff",
+      fontSize: 18,
+      border: "none",
+      cursor: "pointer",
+      boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+    }}
+  >
+    Giriş Yap
+  </button>
+</div>
