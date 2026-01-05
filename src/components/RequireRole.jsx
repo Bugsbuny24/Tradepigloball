@@ -1,21 +1,37 @@
-import { Navigate, useLocation } from "react-router-dom";
-import useMe from "../lib/useMe";
+import React, { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../lib/auth";
 
-export default function RequireRole({ allow, children }) {
-  const { loading, isAuthed, role } = useMe();
-  const loc = useLocation();
+export default function RequireRole({ allow = [], children }) {
+  const { user, loading } = useAuth();
+  const [role, setRole] = useState(null);
+  const [busy, setBusy] = useState(true);
 
-  if (loading) return <div>Loading...</div>;
+  useEffect(() => {
+    if (!user) {
+      setBusy(false);
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
 
-  if (!isAuthed) {
-    return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
-  }
+      if (error) {
+        setRole(null);
+      } else {
+        setRole(data?.role ?? null);
+      }
+      setBusy(false);
+    })();
+  }, [user]);
 
-  if (!allow.includes(role)) {
-    if (role === "owner") return <Navigate to="/owner" replace />;
-    if (role === "company") return <Navigate to="/company" replace />;
-    return <Navigate to="/buyer" replace />;
-  }
+  if (loading || busy) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (allow.length > 0 && !allow.includes(role)) return <Navigate to="/" replace />;
 
   return children;
 }
