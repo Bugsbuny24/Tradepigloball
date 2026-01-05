@@ -22,16 +22,16 @@ export default function Login() {
 
       if (error) {
         setMsg(error.message);
-        setLoading(false);
         return;
       }
 
-      // ✅ login olduysan owner sayfasına git
-      // (owner değilse zaten PlatformOwnerRoute seni /'a geri atacak)
-      navigate("/owner", { replace: true });
+      // ✅ LOGIN BAŞARILI
+      // ŞİMDİLİK HERKESİ ANA SAYFAYA AT
+      navigate("/", { replace: true });
+
     } catch (err) {
       console.error(err);
-      setMsg("Login failed.");
+      setMsg("Login failed");
     } finally {
       setLoading(false);
     }
@@ -48,6 +48,7 @@ export default function Login() {
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
         />
+
         <input
           placeholder="Password"
           type="password"
@@ -55,12 +56,13 @@ export default function Login() {
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
         />
+
         <button disabled={loading} type="submit">
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
 
-      {msg ? <p style={{ marginTop: 12 }}>{msg}</p> : null}
+      {msg && <p style={{ marginTop: 12 }}>{msg}</p>}
     </div>
   );
 }
