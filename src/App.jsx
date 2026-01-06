@@ -6,7 +6,8 @@ import Register from "./pages/Register";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformOwnerRoute from "./components/PlatformOwnerRoute";
-
+import AdminGuard from "./admin/AdminGuard";
+import AdminDashboard from "./admin/AdminDashboard";
 import PiProducts from "./pages/PiProducts";
 import CreateRfq from "./pages/CreateRfq";
 import OwnerPanel from "./pages/OwnerPanel";
@@ -53,3 +54,11 @@ export default function App() {
     </Routes>
   );
 }
+<Route
+  path="/admin"
+  element={
+    <AdminGuard>
+      <AdminDashboard />
+    </AdminGuard>
+  }
+/>
