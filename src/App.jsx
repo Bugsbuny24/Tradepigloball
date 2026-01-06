@@ -1,20 +1,15 @@
+import { Routes, Route, Navigate } from "react-router-dom";
 
-// App.jsx
-import { Routes, Route } from "react-router-dom";
-import AdminGuard from "./routes/AdminGuard";
-import AdminPage from "./pages/AdminPage";
-
-import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+
 import ProtectedRoute from "./components/ProtectedRoute";
-import RequireRole from "./components/RequireRole";
+import PlatformOwnerRoute from "./components/PlatformOwnerRoute";
 
 import PiProducts from "./pages/PiProducts";
 import CreateRfq from "./pages/CreateRfq";
-import ExpoCity from "./pages/ExpoCity";
-import OwnerPanel from "./pages/OwnerPanel"; // <-- bunu ekle
+import OwnerPanel from "./pages/OwnerPanel";
 
 export default function App() {
   return (
@@ -24,6 +19,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
+      {/* PI MODE */}
       <Route
         path="/pi/products"
         element={
@@ -42,24 +38,18 @@ export default function App() {
         }
       />
 
-      <Route path="/expo-city" element={<ExpoCity />} />
-
-      {/* OWNER PANEL */}
+      {/* ADMIN (sadece sen) */}
       <Route
         path="/admin"
         element={
-          <ProtectedRoute>
-            <RequireRole allow={["owner", "admin"]}>
-              <OwnerPanel />
-            </RequireRole>
-          </ProtectedRoute>
+          <PlatformOwnerRoute>
+            <OwnerPanel />
+          </PlatformOwnerRoute>
         }
       />
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
-<Routes>
-  <Route element={<AdminGuard />}>
-    <Route path="/admin" element={<AdminPage />} />
-  </Route>
-</Routes>
