@@ -54,3 +54,21 @@ export default function App() {
     </Routes>
   );
 }
+{/* PI RFQs */}
+<Route
+  path="/pi/rfqs"
+  element={
+    <ProtectedRoute>
+      <PiRfqs />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/pi/rfqs/:id"
+  element={
+    <ProtectedRoute>
+      <PiRfqDetail />
+    </ProtectedRoute>
+  }
+/>
