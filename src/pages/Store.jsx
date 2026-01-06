@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
@@ -25,7 +25,14 @@ export default function Store() {
       .replace(/(^-|-$)/g, "");
   }
 
-  async function load() {
+  function normalizeUrl(url) {
+    if (!url) return "";
+    const s = String(url).trim();
+    if (!s) return "";
+    return s.startsWith("http://") || s.startsWith("https://") ? s : `https://${s}`;
+  }
+
+  const load = useCallback(async () => {
     setLoading(true);
     setErr("");
 
@@ -45,11 +52,11 @@ export default function Store() {
 
     setCompanies(data || []);
     setLoading(false);
-  }
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -70,7 +77,15 @@ export default function Store() {
 
   return (
     <div style={{ maxWidth: 980, margin: "24px auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
         <h2 style={{ margin: 0 }}>Store (Approved Companies)</h2>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -117,71 +132,76 @@ export default function Store() {
               marginTop: 12,
             }}
           >
-            {filtered.map((c) => (
-              <div
-                key={c.id}
-                style={{
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 16,
-                  padding: 14,
-                  background: "rgba(0,0,0,0.20)",
-                }}
-              >
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>{c.company_name || "Company"}</div>
-                <div style={{ opacity: 0.8, marginBottom: 10 }}>
-                  {c.country || "—"} <span style={{ opacity: 0.5 }}>•</span> Verified
-                </div>
+            {filtered.map((c) => {
+              const href = normalizeUrl(c.website);
 
-                {c.website ? (
-                  <div style={{ opacity: 0.85, marginBottom: 12, wordBreak: "break-word" }}>
-                    Website:{" "}
-                    <a href={c.website} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>
-                      {c.website}
-                    </a>
+              return (
+                <div
+                  key={c.id}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    borderRadius: 16,
+                    padding: 14,
+                    background: "rgba(0,0,0,0.20)",
+                  }}
+                >
+                  <div style={{ fontWeight: 900, marginBottom: 6 }}>{c.company_name || "Company"}</div>
+
+                  <div style={{ opacity: 0.8, marginBottom: 10 }}>
+                    {c.country || "—"} <span style={{ opacity: 0.5 }}>•</span> Verified
                   </div>
-                ) : (
-                  <div style={{ opacity: 0.6, marginBottom: 12 }}>Website: —</div>
-                )}
 
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button
-                    onClick={() => goStand(c)}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                      border: "1px solid rgba(160,120,255,0.65)",
-                      background: "rgba(120,70,255,0.45)",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Vitrine gir
-                  </button>
+                  {href ? (
+                    <div style={{ opacity: 0.85, marginBottom: 12, wordBreak: "break-word" }}>
+                      Website:{" "}
+                      <a href={href} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>
+                        {href}
+                      </a>
+                    </div>
+                  ) : (
+                    <div style={{ opacity: 0.6, marginBottom: 12 }}>Website: —</div>
+                  )}
 
-                  <button
-                    onClick={() => nav("/pi/rfq/create")}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                      border: "1px solid rgba(255,255,255,0.18)",
-                      background: "rgba(0,0,0,0.25)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Create RFQ
-                  </button>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      onClick={() => goStand(c)}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 12,
+                        border: "1px solid rgba(160,120,255,0.65)",
+                        background: "rgba(120,70,255,0.45)",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Vitrine gir
+                    </button>
+
+                    <button
+                      onClick={() => nav("/pi/rfq/create")}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 12,
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        background: "rgba(0,0,0,0.25)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Create RFQ
+                    </button>
+                  </div>
+
+                  <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.10)", paddingTop: 10 }}>
+                    <small style={{ opacity: 0.7 }}>
+                      TradePiGloball is not a party to transactions. (Showroom only)
+                    </small>
+                  </div>
                 </div>
-
-                <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.10)", paddingTop: 10 }}>
-                  <small style={{ opacity: 0.7 }}>
-                    TradePiGloball is not a party to transactions. (Showroom only)
-                  </small>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
-                  }
+}
