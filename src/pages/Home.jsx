@@ -8,28 +8,7 @@ export default function Home() {
     <div className="home-container">
       <div className="background-overlay"></div>
 
-      {/* USD MODE (KAPALI) */}
-      <div className="mode-card usd-card">
-        <div className="card-content">
-          <div className="card-icon">
-            <div className="globe-icon">
-              <div className="globe-inner">
-                <span className="dollar-sign">$</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="card-info">
-            <h1 className="mode-title">USD MODE</h1>
-            <p className="mode-subtitle">Global B2B Trade</p>
-            <button className="mode-button usd-button" disabled>
-              USD MODE DISABLED
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* PI MODE */}
+      {/* SADECE PI MODE */}
       <div className="mode-card pi-card">
         <div className="card-content">
           <div className="card-icon">
@@ -63,38 +42,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* EXPO CITY */}
-      <div className="mode-card expo-card">
-        <div className="card-content">
-          <div className="card-icon">
-            <div className="expo-icon">
-              <div className="city-skyline">
-                <div className="building"></div>
-                <div className="building tall"></div>
-                <div className="building"></div>
-              </div>
-              <div className="flags">
-                <span className="flag">🇹🇷</span>
-                <span className="flag">🇺🇸</span>
-                <span className="flag">🇩🇪</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="card-info">
-            <h1 className="mode-title">EXPO CITY</h1>
-            <p className="mode-subtitle">Digital Trade Pavilion</p>
-            <button
-              className="mode-button expo-button"
-              onClick={() => navigate("/expo-city")}
-            >
-              Enter Expo City
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* LOGIN BUTTON (DOĞRU HALİ) */}
+      {/* LOGIN */}
       <div style={{ textAlign: "center", marginTop: 50 }}>
         <button
           onClick={() => navigate("/login")}
