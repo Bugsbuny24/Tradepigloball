@@ -38,3 +38,6 @@ export function SessionProvider({ children }) {
 export function useSession() {
   return useContext(SessionContext);
 }
+export async function signOut() {
+  await supabase.auth.signOut();
+}
