@@ -66,3 +66,4 @@ export default function App() {
     </Routes>
   );
 }
+<Route path="/pi/companies/:id" element={<CompanyStand />} />
