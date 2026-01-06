@@ -21,7 +21,6 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* PI MODE */}
       <Route
         path="/pi/products"
         element={
@@ -40,7 +39,6 @@ export default function App() {
         }
       />
 
-      {/* OWNER */}
       <Route
         path="/admin"
         element={
@@ -50,7 +48,6 @@ export default function App() {
         }
       />
 
-      {/* Admin panel internal */}
       <Route
         path="/adminx"
         element={
