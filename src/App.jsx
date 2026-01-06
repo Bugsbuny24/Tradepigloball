@@ -6,7 +6,7 @@ import Register from "./pages/Register";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformOwnerRoute from "./components/PlatformOwnerRoute";
-
+import RingoWidget from "./components/RingoWidget";
 import PiProducts from "./pages/PiProducts";
 import CreateRfq from "./pages/CreateRfq";
 import CompanyStand from "./pages/CompanyStand";
@@ -16,64 +16,71 @@ import OwnerPanel from "./pages/OwnerPanel";
 import Ringo from "./pages/Ringo";
 export default function App() {
   return (
-    <Routes>
-      {/* Public */}
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-<Route path="/ringo" element={<Ringo />} />
-      {/* PI MODE */}
-      <Route
-        path="/pi/products"
-        element={
-          <ProtectedRoute>
-            <PiProducts />
-          </ProtectedRoute>
-        }
-      />
+    <>
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/ringo" element={<Ringo />} />
 
-      <Route
-        path="/pi/rfq/create"
-        element={
-          <ProtectedRoute>
-            <CreateRfq />
-          </ProtectedRoute>
-        }
-      />
+        {/* PI MODE */}
+        <Route
+          path="/pi/products"
+          element={
+            <ProtectedRoute>
+              <PiProducts />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Company Apply / Waiting */}
-      <Route
-        path="/company/apply"
-        element={
-          <ProtectedRoute>
-            <CompanyApply />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/company/waiting"
-        element={
-          <ProtectedRoute>
-            <CompanyWaiting />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/pi/rfq/create"
+          element={
+            <ProtectedRoute>
+              <CreateRfq />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Company Stand (Public) */}
-      <Route path="/company/:slug" element={<CompanyStand />} />
+        {/* Company Apply / Waiting */}
+        <Route
+          path="/company/apply"
+          element={
+            <ProtectedRoute>
+              <CompanyApply />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Owner Panel */}
-      <Route
-        path="/admin"
-        element={
-          <PlatformOwnerRoute>
-            <OwnerPanel />
-          </PlatformOwnerRoute>
-        }
-      />
+        <Route
+          path="/company/waiting"
+          element={
+            <ProtectedRoute>
+              <CompanyWaiting />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Company Stand (Public) */}
+        <Route path="/company/:slug" element={<CompanyStand />} />
+
+        {/* Owner Panel */}
+        <Route
+          path="/admin"
+          element={
+            <PlatformOwnerRoute>
+              <OwnerPanel />
+            </PlatformOwnerRoute>
+          }
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {/* 🔥 RINGO GLOBAL – BURASI ÖNEMLİ */}
+      <RingoWidget />
+    </>
   );
 }
