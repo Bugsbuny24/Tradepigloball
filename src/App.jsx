@@ -7,15 +7,12 @@ import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformOwnerRoute from "./components/PlatformOwnerRoute";
 
-import AdminGuard from "./admin/AdminGuard";
-import AdminDashboard from "./admin/AdminDashboard";
-
 import PiProducts from "./pages/PiProducts";
 import CreateRfq from "./pages/CreateRfq";
-import OwnerPanel from "./pages/OwnerPanel";
-
-// ✅ EKLE
 import CompanyStand from "./pages/CompanyStand";
+import CompanyApply from "./pages/CompanyApply";
+import CompanyWaiting from "./pages/CompanyWaiting";
+import OwnerPanel from "./pages/OwnerPanel";
 
 export default function App() {
   return (
@@ -25,7 +22,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* PI MODE (auth required) */}
+      {/* PI MODE */}
       <Route
         path="/pi/products"
         element={
@@ -44,7 +41,28 @@ export default function App() {
         }
       />
 
-      {/* Owner Panel (admin-only) */}
+      {/* Company Apply / Waiting */}
+      <Route
+        path="/company/apply"
+        element={
+          <ProtectedRoute>
+            <CompanyApply />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/company/waiting"
+        element={
+          <ProtectedRoute>
+            <CompanyWaiting />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Company Stand (Public) */}
+      <Route path="/company/:slug" element={<CompanyStand />} />
+
+      {/* Owner Panel */}
       <Route
         path="/admin"
         element={
@@ -53,19 +71,6 @@ export default function App() {
           </PlatformOwnerRoute>
         }
       />
-
-      {/* Admin Dashboard (opsiyonel) */}
-      <Route
-        path="/admin/dashboard"
-        element={
-          <AdminGuard>
-            <AdminDashboard />
-          </AdminGuard>
-        }
-      />
-
-      {/* ✅ COMPANY STAND (PUBLIC) */}
-      <Route path="/company/:slug" element={<CompanyStand />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
