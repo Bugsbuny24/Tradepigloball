@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 export default function CompanyStand() {
-  const { id } = useParams(); // ✅ artık slug değil, id
+  const { slug } = useParams();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -11,8 +11,23 @@ export default function CompanyStand() {
   const [products, setProducts] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
 
+  function toSlug(str) {
+    return (str || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replaceAll("ı", "i")
+      .replaceAll("ğ", "g")
+      .replaceAll("ü", "u")
+      .replaceAll("ş", "s")
+      .replaceAll("ö", "o")
+      .replaceAll("ç", "c")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+  }
+
   useEffect(() => {
-    let isMounted = true;
+    let alive = true;
 
     async function run() {
       setLoading(true);
@@ -20,48 +35,59 @@ export default function CompanyStand() {
       setCompany(null);
       setProducts([]);
 
-      // ✅ 1) Tek şirketi approved + id ile çek
-      const { data, error } = await supabase
-        .from("company_applications")
-        .select("id, user_id, company_name, full_name, country, website, status, created_at")
-        .eq("id", id)
-        .eq("status", "approved")
-        .single();
+      try {
+        // 1) Approved şirketi çek (RLS: anon select approved olmalı)
+        const { data, error } = await supabase
+          .from("company_applications")
+          .select("id, user_id, company_name, full_name, country, website, status, created_at")
+          .eq("status", "approved")
+          .order("created_at", { ascending: false });
 
-      if (!isMounted) return;
+        if (!alive) return;
 
-      if (error || !data) {
-        console.error("Company load error:", error);
-        setErrorMsg("Company not found (or not approved).");
-        setLoading(false);
-        return;
+        if (error) {
+          console.error("company fetch error:", error);
+          setErrorMsg(error.message || "Company data could not be loaded.");
+          return;
+        }
+
+        const list = data || [];
+        const found =
+          list.find((c) => toSlug(c.company_name) === slug) ||
+          list.find((c) => c.user_id === slug);
+
+        if (!found) {
+          setErrorMsg("Company not found (or not approved).");
+          return;
+        }
+
+        setCompany(found);
+
+        // 2) ürünleri çek (varsa)
+        const { data: prodData, error: prodErr } = await supabase
+          .from("products")
+          .select("id, title, description, price, currency, created_at")
+          .eq("user_id", found.user_id)
+          .order("created_at", { ascending: false });
+
+        if (!alive) return;
+
+        if (prodErr) {
+          console.warn("products fetch warning:", prodErr);
+          setProducts([]);
+        } else {
+          setProducts(prodData || []);
+        }
+      } finally {
+        if (alive) setLoading(false);
       }
-
-      setCompany(data);
-
-      // ✅ 2) Ürünleri user_id üzerinden çek
-      const { data: prodData, error: prodErr } = await supabase
-        .from("products")
-        .select("id, title, description, price, currency, created_at")
-        .eq("user_id", data.user_id)
-        .order("created_at", { ascending: false });
-
-      if (prodErr) {
-        console.warn("products fetch warning:", prodErr);
-        setProducts([]);
-      } else {
-        setProducts(prodData || []);
-      }
-
-      setLoading(false);
     }
 
-    if (id) run();
-
+    run();
     return () => {
-      isMounted = false;
+      alive = false;
     };
-  }, [id]);
+  }, [slug]); // ✅ SADECE slug
 
   const websiteHost = useMemo(() => {
     if (!company?.website) return "";
@@ -85,12 +111,10 @@ export default function CompanyStand() {
     return (
       <div style={styles.page}>
         <div style={styles.card}>
-          <h2 style={styles.h2}>Company Stand</h2>
+          <h2 style={styles.h2}>Stand</h2>
           <p style={styles.p}>{errorMsg || "Not found."}</p>
-
-          {/* ✅ burası hangi listeye döneceksen ona göre */}
           <button style={styles.secondaryBtn} onClick={() => navigate("/pi/products")}>
-            Back
+            Back to Companies
           </button>
         </div>
       </div>
@@ -103,12 +127,10 @@ export default function CompanyStand() {
         <div>
           <div style={styles.badge}>Verified Company Stand</div>
           <h1 style={styles.h1}>{company.company_name || "Company"}</h1>
-
           <div style={styles.meta}>
             <span>{company.country || "—"}</span>
             <span style={styles.dot}>•</span>
             <span>Owner: {company.full_name || "—"}</span>
-
             {websiteHost ? (
               <>
                 <span style={styles.dot}>•</span>
@@ -128,8 +150,6 @@ export default function CompanyStand() {
             <button style={styles.primaryBtn} onClick={() => navigate("/pi/rfq/create")}>
               Create RFQ
             </button>
-
-            {/* ✅ burası hangi listeye döneceksen ona göre */}
             <button style={styles.secondaryBtn} onClick={() => navigate("/pi/products")}>
               Back
             </button>
@@ -139,7 +159,9 @@ export default function CompanyStand() {
 
       <div style={styles.card}>
         <h2 style={styles.h2}>Products</h2>
-        <p style={styles.p}>Showroom only. TradePiGloball is not a party to payments, delivery, refunds, or disputes.</p>
+        <p style={styles.p}>
+          Showroom only. TradePiGloball is not a party to payments, delivery, refunds, or disputes.
+        </p>
 
         {products.length === 0 ? (
           <div style={styles.empty}>
@@ -156,7 +178,9 @@ export default function CompanyStand() {
                 {p.description ? <div style={styles.productDesc}>{p.description}</div> : null}
 
                 <div style={styles.productFooter}>
-                  <span style={styles.muted}>{p.price ? `${p.price} ${p.currency || ""}` : "Price: RFQ"}</span>
+                  <span style={styles.muted}>
+                    {p.price ? `${p.price} ${p.currency || ""}` : "Price: RFQ"}
+                  </span>
                   <button style={styles.smallBtn} onClick={() => navigate("/pi/rfq/create")}>
                     RFQ
                   </button>
@@ -193,14 +217,12 @@ const styles = {
   dot: { opacity: 0.6 },
   link: { textDecoration: "underline" },
   p: { margin: "0 0 14px 0", opacity: 0.85 },
-
   card: {
     border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: 16,
     padding: 16,
     background: "rgba(0,0,0,0.25)",
   },
-
   primaryBtn: {
     padding: "10px 14px",
     borderRadius: 12,
@@ -216,14 +238,8 @@ const styles = {
     background: "rgba(0,0,0,0.25)",
     cursor: "pointer",
   },
-
   empty: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: 12,
-  },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 },
   productCard: {
     border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: 14,
