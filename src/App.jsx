@@ -14,6 +14,9 @@ import PiProducts from "./pages/PiProducts";
 import CreateRfq from "./pages/CreateRfq";
 import OwnerPanel from "./pages/OwnerPanel";
 
+// ✅ EKLE
+import CompanyStand from "./pages/CompanyStand";
+
 export default function App() {
   return (
     <Routes>
@@ -41,7 +44,7 @@ export default function App() {
         }
       />
 
-      {/* Owner Panel (admin-only, sade) */}
+      {/* Owner Panel (admin-only) */}
       <Route
         path="/admin"
         element={
@@ -51,7 +54,7 @@ export default function App() {
         }
       />
 
-      {/* (Opsiyonel) Admin Dashboard */}
+      {/* Admin Dashboard (opsiyonel) */}
       <Route
         path="/admin/dashboard"
         element={
@@ -61,9 +64,11 @@ export default function App() {
         }
       />
 
+      {/* ✅ COMPANY STAND (PUBLIC) */}
+      <Route path="/company/:slug" element={<CompanyStand />} />
+
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
-<Route path="/pi/companies/:id" element={<CompanyStand />} />
