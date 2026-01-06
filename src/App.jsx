@@ -13,7 +13,7 @@ import CompanyStand from "./pages/CompanyStand";
 import CompanyApply from "./pages/CompanyApply";
 import CompanyWaiting from "./pages/CompanyWaiting";
 import OwnerPanel from "./pages/OwnerPanel";
-
+import Ringo from "./pages/Ringo";
 export default function App() {
   return (
     <Routes>
@@ -21,7 +21,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-
+<Route path="/ringo" element={<Ringo />} />
       {/* PI MODE */}
       <Route
         path="/pi/products"
