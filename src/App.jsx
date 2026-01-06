@@ -7,15 +7,12 @@ import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformOwnerRoute from "./components/PlatformOwnerRoute";
 
-import OwnerPanel from "./pages/OwnerPanel";
-import PiProducts from "./pages/PiProducts";
-import CreateRfq from "./pages/CreateRfq";
-
-import CompanyApply from "./pages/CompanyApply";
-import CompanyWaiting from "./pages/CompanyWaiting";
-
 import AdminGuard from "./admin/AdminGuard";
 import AdminDashboard from "./admin/AdminDashboard";
+
+import PiProducts from "./pages/PiProducts";
+import CreateRfq from "./pages/CreateRfq";
+import OwnerPanel from "./pages/OwnerPanel";
 
 export default function App() {
   return (
@@ -25,25 +22,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* Company flow */}
-      <Route
-        path="/company/apply"
-        element={
-          <ProtectedRoute>
-            <CompanyApply />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/company/waiting"
-        element={
-          <ProtectedRoute>
-            <CompanyWaiting />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* PI MODE */}
+      {/* PI MODE (auth required) */}
       <Route
         path="/pi/products"
         element={
@@ -52,6 +31,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/pi/rfq/create"
         element={
@@ -61,7 +41,7 @@ export default function App() {
         }
       />
 
-      {/* Owner Panel (admin-only sade) */}
+      {/* Owner Panel (admin-only, sade) */}
       <Route
         path="/admin"
         element={
@@ -71,9 +51,9 @@ export default function App() {
         }
       />
 
-      {/* (Eğer hâlâ admin klasörünü kullanacaksan) */}
+      {/* (Opsiyonel) Admin Dashboard */}
       <Route
-        path="/admin/*"
+        path="/admin/dashboard"
         element={
           <AdminGuard>
             <AdminDashboard />
