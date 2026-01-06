@@ -4,9 +4,16 @@ import { supabase } from "../lib/supabaseClient";
 
 export default function CompanyApply() {
   const nav = useNavigate();
-  const [companyName, setCompanyName] = useState("");
+
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+
+  const [fullName, setFullName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [country, setCountry] = useState("");
+  const [website, setWebsite] = useState("");
+  const [taxId, setTaxId] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -19,51 +26,63 @@ export default function CompanyApply() {
     setMsg("");
     setBusy(true);
 
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth?.user?.id;
-    if (!uid) {
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id;
+      if (!uid) throw new Error("Login required");
+
+      if (!companyName.trim()) throw new Error("Company name required");
+
+      const payload = {
+        user_id: uid,
+        full_name: fullName.trim() || null,
+        company_name: companyName.trim(),
+        phone: phone.trim() || null,
+        country: country.trim() || null,
+        website: website.trim() || null,
+        tax_id: taxId.trim() || null,
+        status: "pending",
+        admin_note: null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("company_applications").insert(payload);
+      if (error) throw error;
+
+      // profile güncelle (company_name vb.)
+      await supabase.from("profiles").update({
+        company_name: companyName.trim(),
+        full_name: fullName.trim() || null,
+        phone: phone.trim() || null,
+        country: country.trim() || null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", uid);
+
+      nav("/company/waiting", { replace: true });
+    } catch (e) {
+      setMsg(e?.message || "Apply failed");
+    } finally {
       setBusy(false);
-      setMsg("Login required");
-      return;
     }
-
-    // varsa güncelle, yoksa insert
-    const payload = {
-      user_id: uid,
-      company_name: companyName.trim(),
-      status: "pending",
-      is_verified: false,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase
-      .from("company_profiles")
-      .upsert(payload, { onConflict: "user_id" });
-
-    if (error) {
-      setMsg(error.message);
-      setBusy(false);
-      return;
-    }
-
-    nav("/company/waiting", { replace: true });
-    setBusy(false);
   };
 
   return (
-    <div style={{ padding: 24, color: "#fff" }}>
+    <div style={{ maxWidth: 720, margin: "24px auto", padding: 16 }}>
       <h2>Company Apply</h2>
-      <div style={{ display: "grid", gap: 12, maxWidth: 520 }}>
-        <input
-          value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-          placeholder="Company name"
-          style={{ padding: 12 }}
-        />
-        <button disabled={busy || !companyName.trim()} onClick={submit} style={{ padding: 12 }}>
-          {busy ? "..." : "Submit"}
+
+      <div style={{ display: "grid", gap: 10 }}>
+        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />
+        <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Company name (required)" />
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" />
+        <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Country" />
+        <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website" />
+        <input value={taxId} onChange={(e) => setTaxId(e.target.value)} placeholder="Tax ID" />
+
+        <button disabled={busy} onClick={submit} style={{ padding: 12, borderRadius: 12 }}>
+          {busy ? "..." : "Submit application"}
         </button>
-        {msg ? <div style={{ color: "#ff8080" }}>{msg}</div> : null}
+
+        {msg ? <div style={{ opacity: 0.85 }}>{msg}</div> : null}
       </div>
     </div>
   );
