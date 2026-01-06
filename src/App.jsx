@@ -1,6 +1,22 @@
+import { Routes, Route } from "react-router-dom";
+
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
+import ProtectedRoute from "./components/ProtectedRoute";
+import RequireRole from "./components/RequireRole";
+
+import PiProducts from "./pages/PiProducts";
+import CreateRfq from "./pages/CreateRfq";
+import PiRfqs from "./pages/PiRfqs";
+import PiRfqDetail from "./pages/PiRfqDetail";
+import ExpoCity from "./pages/ExpoCity";
+
 export default function App() {
   return (
     <Routes>
+      {/* Public */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -24,7 +40,6 @@ export default function App() {
         }
       />
 
-      {/* PI RFQs */}
       <Route
         path="/pi/rfqs"
         element={
@@ -43,7 +58,7 @@ export default function App() {
         }
       />
 
-      {/* Expo City */}
+      {/* Expo */}
       <Route path="/expo-city" element={<ExpoCity />} />
 
       {/* Admin */}
