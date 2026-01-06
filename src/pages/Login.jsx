@@ -1,53 +1,43 @@
 import { useState } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Login() {
+  const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = location.state?.from || "/";
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setErr("");
 
-  const handleLogin = async () => {
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (error) return alert(error.message);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
 
-    // login ok -> geldiği sayfaya dön
-    navigate(from, { replace: true });
+    // session geldi mi garanti kontrol
+    const s = data?.session;
+    if (!s) {
+      setErr("Email doğrulaması gerekebilir. Mailini kontrol et.");
+      return;
+    }
+
+    nav("/pi/products", { replace: true });
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Login</h1>
-
-      <input
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={{ display: "block", marginBottom: 12, width: "100%" }}
-      />
-
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        style={{ display: "block", marginBottom: 12, width: "100%" }}
-      />
-
-      <button onClick={handleLogin} disabled={busy}>
-        {busy ? "..." : "Giriş Yap"}
-      </button>
-
-      <div style={{ marginTop: 12 }}>
-        Hesabın yok mu? <Link to="/register">Kayıt Ol</Link>
-      </div>
-    </div>
+    <form onSubmit={handleLogin}>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+      <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password" />
+      <button type="submit">Giriş Yap</button>
+      {err && <p style={{ marginTop: 10 }}>{err}</p>}
+    </form>
   );
 }
