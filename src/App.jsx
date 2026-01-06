@@ -1,3 +1,9 @@
+
+// App.jsx
+import { Routes, Route } from "react-router-dom";
+import AdminGuard from "./routes/AdminGuard";
+import AdminPage from "./pages/AdminPage";
+
 import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -52,3 +58,8 @@ export default function App() {
     </Routes>
   );
 }
+<Routes>
+  <Route element={<AdminGuard />}>
+    <Route path="/admin" element={<AdminPage />} />
+  </Route>
+</Routes>
