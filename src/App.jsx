@@ -6,7 +6,6 @@ import Register from "./pages/Register";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformOwnerRoute from "./components/PlatformOwnerRoute";
-
 import AdminGuard from "./admin/AdminGuard";
 import AdminDashboard from "./admin/AdminDashboard";
 
@@ -17,12 +16,12 @@ import OwnerPanel from "./pages/OwnerPanel";
 export default function App() {
   return (
     <Routes>
-      {/* Public */}
       <Route path="/" element={<Home />} />
+
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* PI MODE (auth gerekli) */}
+      {/* PI MODE */}
       <Route
         path="/pi/products"
         element={
@@ -41,7 +40,7 @@ export default function App() {
         }
       />
 
-      {/* OWNER PANEL (system owner) */}
+      {/* OWNER */}
       <Route
         path="/admin"
         element={
@@ -51,9 +50,9 @@ export default function App() {
         }
       />
 
-      {/* ADMIN DASHBOARD (opsiyonel / app_admins) */}
+      {/* Admin panel internal */}
       <Route
-        path="/admin-dashboard"
+        path="/adminx"
         element={
           <AdminGuard>
             <AdminDashboard />
@@ -61,7 +60,6 @@ export default function App() {
         }
       />
 
-      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
