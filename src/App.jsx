@@ -1,24 +1,11 @@
-import { Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ProtectedRoute from "./components/ProtectedRoute";
-import RequireRole from "./components/RequireRole";
-import PiRfqs from "./pages/PiRfqs";
-import PiRfqDetail from "./pages/PiRfqDetail";
-import PiProducts from "./pages/PiProducts";
-import CreateRfq from "./pages/CreateRfq";
-import ExpoCity from "./pages/ExpoCity";
-
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* PI MODE (login şart) */}
+      {/* PI MODE */}
       <Route
         path="/pi/products"
         element={
@@ -37,10 +24,29 @@ export default function App() {
         }
       />
 
-      {/* Expo City (istersen login zorunlu yaparız) */}
+      {/* PI RFQs */}
+      <Route
+        path="/pi/rfqs"
+        element={
+          <ProtectedRoute>
+            <PiRfqs />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/pi/rfqs/:id"
+        element={
+          <ProtectedRoute>
+            <PiRfqDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Expo City */}
       <Route path="/expo-city" element={<ExpoCity />} />
 
-      {/* örnek admin sayfası */}
+      {/* Admin */}
       <Route
         path="/admin"
         element={
@@ -54,21 +60,3 @@ export default function App() {
     </Routes>
   );
 }
-{/* PI RFQs */}
-<Route
-  path="/pi/rfqs"
-  element={
-    <ProtectedRoute>
-      <PiRfqs />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/pi/rfqs/:id"
-  element={
-    <ProtectedRoute>
-      <PiRfqDetail />
-    </ProtectedRoute>
-  }
-/>
