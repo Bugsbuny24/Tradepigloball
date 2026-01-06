@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 export default function CompanyStand() {
-  const { slug } = useParams();
+  const { id } = useParams(); // ✅ artık slug değil, id
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -11,66 +11,39 @@ export default function CompanyStand() {
   const [products, setProducts] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
 
-  function toSlug(str) {
-    return (str || "")
-      .toString()
-      .trim()
-      .toLowerCase()
-      .replaceAll("ı", "i")
-      .replaceAll("ğ", "g")
-      .replaceAll("ü", "u")
-      .replaceAll("ş", "s")
-      .replaceAll("ö", "o")
-      .replaceAll("ç", "c")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-  }
-
-  // 1) Approved şirketleri çek -> slug eşleşen şirketi bul
   useEffect(() => {
     let isMounted = true;
 
     async function run() {
       setLoading(true);
       setErrorMsg("");
+      setCompany(null);
+      setProducts([]);
 
+      // ✅ 1) Tek şirketi approved + id ile çek
       const { data, error } = await supabase
         .from("company_applications")
         .select("id, user_id, company_name, full_name, country, website, status, created_at")
+        .eq("id", id)
         .eq("status", "approved")
-        .order("created_at", { ascending: false });
+        .single();
 
       if (!isMounted) return;
 
-      if (error) {
-        console.error(error);
-        setErrorMsg("Company data could not be loaded.");
-        setLoading(false);
-        return;
-      }
-
-      const list = data || [];
-      const found =
-        list.find((c) => toSlug(c.company_name) === slug) ||
-        list.find((c) => c.user_id === slug);
-
-      if (!found) {
-        setCompany(null);
-        setProducts([]);
+      if (error || !data) {
+        console.error("Company load error:", error);
         setErrorMsg("Company not found (or not approved).");
         setLoading(false);
         return;
       }
 
-      setCompany(found);
+      setCompany(data);
 
-      // 2) (Opsiyonel ama güzel) Bu şirketin ürünlerini çek
-      // products tablon varsa ve "user_id / company_id" ile bağlıysa:
-      // Aşağıda user_id ile filtreliyoruz.
+      // ✅ 2) Ürünleri user_id üzerinden çek
       const { data: prodData, error: prodErr } = await supabase
         .from("products")
         .select("id, title, description, price, currency, created_at")
-        .eq("user_id", found.user_id)
+        .eq("user_id", data.user_id)
         .order("created_at", { ascending: false });
 
       if (prodErr) {
@@ -83,12 +56,12 @@ export default function CompanyStand() {
       setLoading(false);
     }
 
-    run();
+    if (id) run();
 
     return () => {
       isMounted = false;
     };
-  }, [slug]);
+  }, [id]);
 
   const websiteHost = useMemo(() => {
     if (!company?.website) return "";
@@ -112,10 +85,12 @@ export default function CompanyStand() {
     return (
       <div style={styles.page}>
         <div style={styles.card}>
-          <h2 style={styles.h2}>Stand</h2>
+          <h2 style={styles.h2}>Company Stand</h2>
           <p style={styles.p}>{errorMsg || "Not found."}</p>
+
+          {/* ✅ burası hangi listeye döneceksen ona göre */}
           <button style={styles.secondaryBtn} onClick={() => navigate("/pi/products")}>
-            Back to Companies
+            Back
           </button>
         </div>
       </div>
@@ -128,10 +103,12 @@ export default function CompanyStand() {
         <div>
           <div style={styles.badge}>Verified Company Stand</div>
           <h1 style={styles.h1}>{company.company_name || "Company"}</h1>
+
           <div style={styles.meta}>
             <span>{company.country || "—"}</span>
             <span style={styles.dot}>•</span>
             <span>Owner: {company.full_name || "—"}</span>
+
             {websiteHost ? (
               <>
                 <span style={styles.dot}>•</span>
@@ -151,6 +128,8 @@ export default function CompanyStand() {
             <button style={styles.primaryBtn} onClick={() => navigate("/pi/rfq/create")}>
               Create RFQ
             </button>
+
+            {/* ✅ burası hangi listeye döneceksen ona göre */}
             <button style={styles.secondaryBtn} onClick={() => navigate("/pi/products")}>
               Back
             </button>
@@ -160,9 +139,7 @@ export default function CompanyStand() {
 
       <div style={styles.card}>
         <h2 style={styles.h2}>Products</h2>
-        <p style={styles.p}>
-          Showroom only. TradePiGloball is not a party to payments, delivery, refunds, or disputes.
-        </p>
+        <p style={styles.p}>Showroom only. TradePiGloball is not a party to payments, delivery, refunds, or disputes.</p>
 
         {products.length === 0 ? (
           <div style={styles.empty}>
@@ -179,9 +156,7 @@ export default function CompanyStand() {
                 {p.description ? <div style={styles.productDesc}>{p.description}</div> : null}
 
                 <div style={styles.productFooter}>
-                  <span style={styles.muted}>
-                    {p.price ? `${p.price} ${p.currency || ""}` : "Price: RFQ"}
-                  </span>
+                  <span style={styles.muted}>{p.price ? `${p.price} ${p.currency || ""}` : "Price: RFQ"}</span>
                   <button style={styles.smallBtn} onClick={() => navigate("/pi/rfq/create")}>
                     RFQ
                   </button>
