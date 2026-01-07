@@ -1,155 +1,105 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
-import { useAuth } from "../lib/auth.jsx";
+import React from "react";
+import { supabase } from "../lib/supabase";
+import { creditSpend, CREDIT_COST } from "../lib/credits";
 
 export default function Products() {
-  const { user } = useAuth();
-  const [rows, setRows] = useState([]);
-  const [credits, setCredits] = useState(null);
-
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [pricePi, setPricePi] = useState("");
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [title, setTitle] = React.useState("");
+  const [price, setPrice] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [items, setItems] = React.useState([]);
 
   async function load() {
-    setErr("");
-    setMsg("");
-
-    const { data: list, error: e1 } = await supabase
+    const { data, error } = await supabase
       .from("products")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(100);
-
-    if (e1) setErr(e1.message);
-    setRows(list || []);
-
-    if (user) {
-      await supabase.rpc("ensure_wallet");
-      const { data: w, error: e2 } = await supabase
-        .from("user_wallets")
-        .select("credits")
-        .eq("user_id", user.id)
-        .single();
-      if (!e2) setCredits(w?.credits ?? 0);
-    } else {
-      setCredits(null);
-    }
+      .limit(50);
+    if (!error) setItems(data || []);
   }
 
-  useEffect(() => {
+  React.useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, []);
 
-  async function createPaid() {
-    setErr("");
-    setMsg("");
-    setBusy(true);
+  async function onCreateProduct() {
+    setLoading(true);
     try {
-      if (!user) throw new Error("Login gerekli.");
-      const price = pricePi === "" ? null : Number(pricePi);
+      await creditSpend("PRODUCT_CREATE", CREDIT_COST.PRODUCT_CREATE, "Create Product");
 
-      const { data, error } = await supabase.rpc("create_product_paid", {
-        p_title: title,
-        p_description: description || null,
-        p_price_pi: Number.isFinite(price) ? price : null,
+      const { error } = await supabase.from("products").insert({
+        title: title || "Demo Product",
+        price: Number(price || 0),
       });
-
       if (error) throw error;
 
-      setMsg("Ürün eklendi ✅ id: " + data);
-      setTitle(""); setDescription(""); setPricePi("");
+      alert("Product added ✅");
+      setTitle("");
+      setPrice("");
       await load();
     } catch (e) {
-      const m = e?.message || "Error";
-      if (m.includes("not_enough_credits")) setErr("Kredi yok kanka 😄 Önce kredi yüklemen lazım.");
-      else setErr(m);
+      if (e?.code === "YETERSIZ_KREDI") return alert("Kredi bitti kanka 😅 Ürün eklemek için kredi lazım.");
+      if (e?.code === "NOT_AUTHENTICATED") return alert("Önce Login ol kanka.");
+      alert(e?.message || "Hata");
+      console.error(e);
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
   }
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Products</h1>
-
-      <div style={{ opacity: 0.85, marginBottom: 10 }}>
-        Ürün eklemek <b>1 kredi</b> yer. (Krediyi sonra Pi ödeme ile dolduracağız.)
+      <h2 style={{ marginTop: 0 }}>Products</h2>
+      <div style={{ opacity: 0.8, marginBottom: 12 }}>
+        Ürün eklemek <b>1 kredi</b> yer.
       </div>
 
-      <div style={box}>
-        <div style={{ fontWeight: 800, marginBottom: 8 }}>
-          {user ? (
-            <>Credits: <span style={{ color: "rgba(180,255,180,.95)" }}>{credits ?? "..."}</span></>
-          ) : (
-            <>Login yapınca kredi görünür.</>
-          )}
-        </div>
+      <div style={{ display: "grid", gap: 10, maxWidth: 420 }}>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" style={inp} />
+        <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price (number)" style={inp} />
 
-        <div style={{ display: "grid", gap: 10, maxWidth: 420 }}>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" style={inp} />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" style={{ ...inp, minHeight: 90 }} />
-          <input value={pricePi} onChange={(e) => setPricePi(e.target.value)} placeholder="Price (Pi) optional" style={inp} />
-
-          <button onClick={createPaid} disabled={busy || !title} style={btn}>
-            {busy ? "..." : "Add product (1 credit)"}
-          </button>
-        </div>
-
-        {msg ? <div style={{ marginTop: 10, color: "rgba(180,255,180,.95)" }}>{msg}</div> : null}
-        {err ? <div style={{ marginTop: 10, color: "rgba(255,180,180,.95)" }}>{err}</div> : null}
+        <button onClick={onCreateProduct} disabled={loading} style={btn}>
+          {loading ? "Working..." : "Create Product (1 credit)"}
+        </button>
       </div>
 
-      <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-        {(rows || []).map((p) => (
-          <div key={p.id} style={row}>
-            <div style={{ fontWeight: 900 }}>{p.title}</div>
-            <div style={{ opacity: 0.8, marginTop: 4 }}>{p.description || "—"}</div>
-            <div style={{ opacity: 0.7, marginTop: 6, fontSize: 12 }}>
-              price_pi: {p.price_pi ?? "—"} • {new Date(p.created_at).toLocaleString()}
-            </div>
+      <div style={{ marginTop: 18 }}>
+        {items?.length ? (
+          <div style={{ display: "grid", gap: 10 }}>
+            {items.map((x) => (
+              <div key={x.id} style={card}>
+                <div style={{ fontWeight: 800 }}>{x.title}</div>
+                <div style={{ opacity: 0.8 }}>Price: {x.price}</div>
+              </div>
+            ))}
           </div>
-        ))}
-        {(rows || []).length === 0 ? <div style={{ opacity: 0.7 }}>No products yet.</div> : null}
+        ) : (
+          <div style={{ opacity: 0.8 }}>No products yet.</div>
+        )}
       </div>
     </div>
   );
 }
 
-const box = {
-  marginTop: 12,
-  padding: 14,
-  borderRadius: 14,
-  background: "rgba(255,255,255,.06)",
-  border: "1px solid rgba(255,255,255,.10)",
-};
-
-const row = {
-  padding: 14,
-  borderRadius: 14,
-  background: "rgba(0,0,0,.18)",
-  border: "1px solid rgba(255,255,255,.08)",
-};
-
 const inp = {
-  padding: "10px 12px",
+  padding: "12px 12px",
   borderRadius: 12,
-  border: "1px solid rgba(255,255,255,.14)",
-  background: "rgba(0,0,0,.25)",
+  border: "1px solid rgba(255,255,255,.12)",
+  background: "rgba(0,0,0,.18)",
   color: "white",
   outline: "none",
 };
-
 const btn = {
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid rgba(255,255,255,.14)",
-  background: "rgba(130,90,255,.35)",
+  padding: "12px 12px",
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,.12)",
+  background: "rgba(130,90,255,.45)",
   color: "white",
-  fontWeight: 900,
   cursor: "pointer",
+  fontWeight: 800,
+};
+const card = {
+  padding: 12,
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,.10)",
+  background: "rgba(0,0,0,.14)",
 };
