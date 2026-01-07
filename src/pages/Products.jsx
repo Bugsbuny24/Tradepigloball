@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { useAuth } from "../lib/auth";
+import { useAuth } from "../lib/auth.jsx";
 
 export default function Products() {
   const { user } = useAuth();
