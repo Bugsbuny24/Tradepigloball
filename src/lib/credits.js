@@ -15,8 +15,8 @@ export async function creditEnsure() {
 export async function creditMe() {
   const { data, error } = await supabase.rpc("rpc_credit_me");
   if (error) throw error;
-  return data ?? 0;
-}
+  return data?.balance ?? 0;
+
 
 export async function creditSpend(action, amount, note = null) {
   const { data, error } = await supabase.rpc("rpc_credit_spend", {
