@@ -29,25 +29,23 @@ export default function RFQs() {
   async function loadCredits() {
     setCredits(null);
 
-    // auth debug: ekrana basalım (PC console gerekmiyor)
+    // telefon debug
     const dbg = await getAuthDebug();
     setAuthDbg(dbg);
 
-    // Login yoksa zaten credits çekemeyiz
     if (!dbg?.userId) {
       setCredits(null);
       return;
     }
 
-    // 1) RPC ile dene: rpc_wallet_me()
-    const { data: w, error: wErr } = await supabase.rpc("rpc_wallet_me");
-
-    if (!wErr) {
-      setCredits(typeof w === "number" ? w : Number(w) || 0);
+    // 1️⃣ önce RPC
+    const { data, error } = await supabase.rpc("rpc_wallet_me");
+    if (!error) {
+      setCredits(typeof data === "number" ? data : Number(data) || 0);
       return;
     }
 
-    // 2) RPC yoksa tablo fallback: user_wallets.balance
+    // 2️⃣ fallback tablo
     const { data: row, error: tErr } = await supabase
       .from("user_wallets")
       .select("balance")
@@ -58,7 +56,6 @@ export default function RFQs() {
       return;
     }
 
-    // 3) ikisi de patladıysa null bırak
     setCredits(null);
   }
 
@@ -66,19 +63,15 @@ export default function RFQs() {
     loadRFQs();
     loadCredits();
 
-    // auth değişirse otomatik yenile
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
       loadCredits();
       loadRFQs();
     });
 
-    return () => {
-      sub?.subscription?.unsubscribe?.();
-    };
+    return () => sub?.subscription?.unsubscribe?.();
   }, []);
 
   async function spendCreditForRFQ() {
-    // rpc_credit_spend param isimleri sende p_action / p_amount / p_note
     const { data, error } = await supabase.rpc("rpc_credit_spend", {
       p_action: "RFQ_CREATE",
       p_amount: CREDIT_COST.RFQ_CREATE,
@@ -87,7 +80,6 @@ export default function RFQs() {
 
     if (error) throw error;
 
-    // function yeni balance döndürüyorsa kullan
     const newBal = typeof data === "number" ? data : Number(data);
     if (!Number.isNaN(newBal)) setCredits(newBal);
   }
@@ -95,7 +87,6 @@ export default function RFQs() {
   async function onCreateRFQ() {
     setLoading(true);
     try {
-      // 0) login kontrolünü ekranda da göreceğiz
       const dbg = await getAuthDebug();
       setAuthDbg(dbg);
 
@@ -104,10 +95,10 @@ export default function RFQs() {
         return;
       }
 
-      // 1) önce kredi düş
+      // 1️⃣ önce kredi düş
       await spendCreditForRFQ();
 
-      // 2) sonra RFQ insert (kredi düşmezse ASLA açılmayacak)
+      // 2️⃣ sonra RFQ insert
       const { error } = await supabase.from("rfqs").insert({
         title: title || "Test RFQ",
         description: desc || "",
@@ -124,18 +115,14 @@ export default function RFQs() {
       await loadRFQs();
       await loadCredits();
     } catch (e) {
-      const code = e?.code;
-
-      if (code === "YETERSIZ_KREDI") {
-        alert("Kredi bitti kanka 😄 Önce kredi alman lazım.");
+      if (e?.code === "YETERSIZ_KREDI") {
+        alert("Kredi bitti kanka 😄");
         return;
       }
-
-      if (code === "NOT_AUTHENTICATED") {
+      if (e?.code === "NOT_AUTHENTICATED") {
         alert("Önce Login ol kanka.");
         return;
       }
-
       alert(e?.message || "Hata");
     } finally {
       setLoading(false);
@@ -144,122 +131,48 @@ export default function RFQs() {
 
   return (
     <div style={{ padding: 16 }}>
-      <h2 style={{ marginTop: 0 }}>RFQs</h2>
+      <h2>RFQs</h2>
 
-      {/* Credits */}
-      <div style={{ marginBottom: 10, opacity: 0.9 }}>
-        <b>Credits:</b>{" "}
-        {credits === null ? (
-          <span>...</span>
-        ) : (
-          <span>{credits}</span>
-        )}
+      <div style={{ marginBottom: 10 }}>
+        <b>Credits:</b> {credits === null ? "..." : credits}
       </div>
 
-      {/* Telefon debug paneli (PC console yok, burası console) */}
       <div style={dbgBox}>
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>Auth Debug (telefon)</div>
-        <div style={dbgLine}>
-          <b>hasSession:</b> {String(authDbg?.hasSession ?? "-")}
-        </div>
-        <div style={dbgLine}>
-          <b>sessionUserId:</b> {authDbg?.sessionUserId ?? "-"}
-        </div>
-        <div style={dbgLine}>
-          <b>userId:</b> {authDbg?.userId ?? "-"}
-        </div>
-        <div style={dbgLine}>
-          <b>email:</b> {authDbg?.email ?? "-"}
-        </div>
-        <div style={dbgLine}>
-          <b>error:</b> {authDbg?.error ?? "-"}
-        </div>
+        <b>Auth Debug (telefon)</b>
+        <div>userId: {authDbg?.userId ?? "-"}</div>
+        <div>email: {authDbg?.email ?? "-"}</div>
+        <div>error: {authDbg?.error ?? "-"}</div>
       </div>
 
-      <div style={{ opacity: 0.8, marginBottom: 12 }}>
-        RFQ açmak <b>1 kredi</b> yer.
-      </div>
+      <div>RFQ açmak <b>1 kredi</b> yer.</div>
 
-      {/* Form */}
       <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" style={inp} />
-        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Description" style={txt} />
-        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes" style={inp} />
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" style={inp} />
+        <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description" style={txt} />
+        <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes" style={inp} />
 
         <button onClick={onCreateRFQ} disabled={loading} style={btn}>
           {loading ? "Working..." : "Create RFQ (1 credit)"}
         </button>
       </div>
 
-      {/* List */}
-      <div style={{ marginTop: 18, opacity: 0.95 }}>
-        {items?.length ? (
-          <div style={{ display: "grid", gap: 10 }}>
-            {items.map((x) => (
-              <div key={x.id} style={card}>
-                <div style={{ fontWeight: 800 }}>{x.title}</div>
-                {x.description ? <div style={{ opacity: 0.85 }}>{x.description}</div> : null}
-                {x.notes ? <div style={{ opacity: 0.7, fontSize: 13 }}>{x.notes}</div> : null}
-              </div>
-            ))}
+      <div style={{ marginTop: 18 }}>
+        {items.length ? items.map(x => (
+          <div key={x.id} style={card}>
+            <b>{x.title}</b>
+            <div>{x.description}</div>
           </div>
-        ) : (
-          <div>No RFQs yet.</div>
-        )}
-      </div>
-
-      {/* disclaimer */}
-      <div style={{ marginTop: 16, opacity: 0.65, fontSize: 12 }}>
-        Disclaimer: TradePiGloball is a showroom + RFQ platform only. We are not a party to any transaction, payment,
-        delivery, refund, or dispute. All agreements and liabilities belong solely to users.
+        )) : "No RFQs yet."}
       </div>
     </div>
   );
 }
 
 const inp = {
-  padding: "12px 12px",
-  borderRadius: 12,
-  border: "1px solid rgba(255,255,255,.12)",
-  background: "rgba(0,0,0,.18)",
-  color: "white",
-  outline: "none",
+  padding: 12, borderRadius: 12, background: "rgba(0,0,0,.18)",
+  color: "white", border: "1px solid rgba(255,255,255,.12)"
 };
-
-const txt = {
-  ...inp,
-  minHeight: 90,
-  resize: "vertical",
-};
-
-const btn = {
-  padding: "12px 12px",
-  borderRadius: 14,
-  border: "1px solid rgba(255,255,255,.12)",
-  background: "rgba(130,90,255,.45)",
-  color: "white",
-  cursor: "pointer",
-  fontWeight: 700,
-};
-
-const card = {
-  padding: 12,
-  borderRadius: 14,
-  border: "1px solid rgba(255,255,255,.12)",
-  background: "rgba(0,0,0,.18)",
-};
-
-const dbgBox = {
-  marginBottom: 14,
-  padding: 12,
-  borderRadius: 14,
-  border: "1px dashed rgba(255,255,255,.25)",
-  background: "rgba(0,0,0,.12)",
-  maxWidth: 520,
-};
-
-const dbgLine = {
-  fontSize: 12,
-  opacity: 0.9,
-  marginBottom: 4,
-};
+const txt = { ...inp, minHeight: 90 };
+const btn = { padding: 12, borderRadius: 14, background: "#6d5cff", color: "white" };
+const card = { padding: 12, marginTop: 8, borderRadius: 12, background: "rgba(0,0,0,.18)" };
+const dbgBox = { margin: "12px 0", padding: 10, border: "1px dashed #555" };
