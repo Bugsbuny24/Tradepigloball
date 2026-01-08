@@ -1,131 +1,206 @@
 import React from "react";
 import { supabase } from "../lib/supabaseClient";
 import { getAuthDebug } from "../lib/debugAuth";
-import { spendCredit } from "../lib/credits";
+
+const COST = { PRODUCT_CREATE: 1 };
 
 export default function Products() {
-  const [title, setTitle] = React.useState("");
-  const [desc, setDesc] = React.useState("");
-  const [price, setPrice] = React.useState(""); // numeric string
-  const [currency, setCurrency] = React.useState("PI"); // istersen USD vs
-  const [loading, setLoading] = React.useState(false);
-  const [items, setItems] = React.useState([]);
-  const [credits, setCredits] = React.useState(null);
   const [authDbg, setAuthDbg] = React.useState(null);
 
+  const [tab, setTab] = React.useState("browse"); // browse | mine
+  const [loading, setLoading] = React.useState(true);
+  const [err, setErr] = React.useState("");
+
+  const [items, setItems] = React.useState([]);
+  const [mine, setMine] = React.useState([]);
+
+  const [title, setTitle] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [price, setPrice] = React.useState("");
+  const [currency, setCurrency] = React.useState("PI");
+
   async function load() {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (!error) setItems(data || []);
-  }
-
-  async function loadCredits() {
-    const dbg = await getAuthDebug();
-    setAuthDbg(dbg);
-    if (!dbg?.userId) return setCredits(0);
-    const { data } = await supabase.rpc("rpc_wallet_me"); // sende varsa
-    if (typeof data === "number") setCredits(data);
-  }
-
-  React.useEffect(() => {
-    (async () => {
-      await load();
-      await loadCredits();
-    })();
-  }, []);
-
-  async function onCreate() {
-    const dbg = await getAuthDebug();
-    setAuthDbg(dbg);
-    if (!dbg?.userId) return alert("Önce login ol kanka.");
-
-    const p = price === "" ? null : Number(price);
-    if (price !== "" && !Number.isFinite(p)) return alert("Price sayı olmalı kanka.");
-
     setLoading(true);
+    setErr("");
     try {
-      // 1 kredi yak (senin sistemin)
-      await spendCredit("PRODUCT_CREATE", 1, "product create");
+      const dbg = await getAuthDebug();
+      setAuthDbg(dbg);
 
-      const { error } = await supabase.from("products").insert({
-        owner_id: dbg.userId,
-        title: title || "Product",
-        description: desc || "",
-        price_amount: p,
-        price_currency: currency || null,
-      });
+      const pub = await supabase
+        .from("products")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (pub.error) throw pub.error;
+      setItems(pub.data || []);
 
-      if (error) throw error;
-
-      setTitle("");
-      setDesc("");
-      setPrice("");
-      await load();
-      await loadCredits();
-      alert("Product created ✅");
+      if (dbg?.userId) {
+        const my = await supabase
+          .from("products")
+          .select("*")
+          .eq("owner_id", dbg.userId)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (!my.error) setMine(my.data || []);
+      } else {
+        setMine([]);
+      }
     } catch (e) {
-      alert(e?.message || "Hata");
+      setErr(e?.message || "Load error");
     } finally {
       setLoading(false);
     }
   }
 
+  React.useEffect(() => {
+    load();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => load());
+    return () => sub?.subscription?.unsubscribe?.();
+  }, []);
+
+  async function spendProductCredit() {
+    // Ürün eklemeyi ücretli yapmak istiyorsan bu açık kalsın
+    const { error } = await supabase.rpc("rpc_credit_spend", {
+      p_action: "PRODUCT_CREATE",
+      p_amount: COST.PRODUCT_CREATE,
+      p_note: "product create",
+    });
+    if (error) throw error;
+  }
+
+  async function createProduct() {
+    setErr("");
+    try {
+      const dbg = await getAuthDebug();
+      setAuthDbg(dbg);
+      if (!dbg?.userId) throw new Error("Önce Login ol kanka.");
+
+      if (!title.trim()) throw new Error("Title required");
+      const p = price.trim() ? Number(price) : null;
+      if (price.trim() && (!Number.isFinite(p) || p < 0)) throw new Error("Invalid price");
+
+      // 1) kredi düş (istersen kaldır)
+      await spendProductCredit();
+
+      // 2) insert
+      const ins = await supabase.from("products").insert({
+        owner_id: dbg.userId,
+        title: title.trim(),
+        description: description.trim() || null,
+        price_amount: p,
+        price_currency: currency || "PI",
+        is_active: true,
+      });
+      if (ins.error) throw ins.error;
+
+      setTitle("");
+      setDescription("");
+      setPrice("");
+      await load();
+      setTab("mine");
+    } catch (e) {
+      setErr(e?.message || "Create error");
+    }
+  }
+
   return (
-    <div style={{ padding: 16 }}>
-      <h2>Products</h2>
+    <div style={page}>
+      <div style={card}>
+        <h2 style={{ margin: 0 }}>PI MODE • Products</h2>
 
-      <div style={dbgBox}>
-        <b>Auth Debug</b>
-        <div>userId: {authDbg?.userId ?? "-"}</div>
-        <div>email: {authDbg?.email ?? "-"}</div>
-        <div style={{ marginTop: 6 }}><b>Credits:</b> {credits === null ? "..." : credits}</div>
-        <div style={{ opacity: 0.75, marginTop: 6 }}>Ürün eklemek 1 kredi yer.</div>
-      </div>
+        <div style={dbgBox}>
+          <b>Auth Debug</b>
+          <div>userId: {authDbg?.userId ?? "-"}</div>
+          <div>email: {authDbg?.email ?? "-"}</div>
+        </div>
 
-      <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" style={inp} />
-        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Description" style={txt} />
-        <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price (optional)" style={inp} />
-        <input value={currency} onChange={(e) => setCurrency(e.target.value)} placeholder="Currency (PI)" style={inp} />
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+          <button style={tabBtn(tab === "browse")} onClick={() => setTab("browse")}>Browse</button>
+          <button style={tabBtn(tab === "mine")} onClick={() => setTab("mine")}>My Products</button>
+          <button style={btn2} onClick={load}>Refresh</button>
+        </div>
 
-        <button onClick={onCreate} disabled={loading} style={btn}>
-          {loading ? "Working..." : "Create Product (1 credit)"}
-        </button>
-      </div>
+        {err ? <div style={errBox}><b>Hata:</b> {err}</div> : null}
+        {loading ? <div style={{ marginTop: 12 }}>Loading…</div> : null}
 
-      <div style={{ marginTop: 18 }}>
-        {items.length ? (
-          items.map((x) => (
-            <div key={x.id} style={card}>
-              <b>{x.title ?? "Product"}</b>
-              {x.price_amount != null ? (
-                <div style={{ marginTop: 6, opacity: 0.9 }}>
-                  Price: {x.price_amount} {x.price_currency ?? ""}
+        {!loading && tab === "browse" ? (
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            {items.length === 0 ? (
+              <div style={{ opacity: 0.75 }}>No products yet.</div>
+            ) : (
+              items.map((p) => (
+                <div key={p.id} style={row}>
+                  <div style={{ fontWeight: 900 }}>{p.title}</div>
+                  {p.description ? <div style={{ opacity: 0.85, marginTop: 6 }}>{p.description}</div> : null}
+                  <div style={{ opacity: 0.75, marginTop: 6 }}>
+                    Price: {p.price_amount != null ? `${p.price_amount} ${p.price_currency || ""}` : "RFQ"}
+                  </div>
+                  <div style={{ opacity: 0.65, marginTop: 6, fontSize: 12 }}>
+                    Stand: <a style={{ color: "white" }} href={`/stand/${p.owner_id}`}>/stand/{p.owner_id}</a>
+                  </div>
                 </div>
-              ) : null}
-              <div style={{ opacity: 0.9, marginTop: 6, whiteSpace: "pre-wrap" }}>{x.description}</div>
+              ))
+            )}
+          </div>
+        ) : null}
+
+        {!loading && tab === "mine" ? (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ padding: 12, borderRadius: 12, background: "rgba(255,255,255,.04)" }}>
+              <h3 style={{ margin: "0 0 10px 0" }}>Add Product (1 credit)</h3>
+              <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" style={inp} />
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" style={{ ...inp, minHeight: 90 }} />
+                <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price (optional)" style={inp} />
+                <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inp}>
+                  <option value="PI">PI</option>
+                  <option value="USD" disabled>USD (disabled)</option>
+                </select>
+
+                <button style={btn} onClick={createProduct}>Create</button>
+              </div>
             </div>
-          ))
-        ) : (
-          <div style={{ opacity: 0.8 }}>No products yet.</div>
-        )}
+
+            <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+              {mine.length === 0 ? (
+                <div style={{ opacity: 0.75 }}>No products yet.</div>
+              ) : (
+                mine.map((p) => (
+                  <div key={p.id} style={row}>
+                    <div style={{ fontWeight: 900 }}>{p.title}</div>
+                    <div style={{ opacity: 0.75, marginTop: 6 }}>
+                      {p.price_amount != null ? `${p.price_amount} ${p.price_currency || ""}` : "RFQ"}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        <div style={{ marginTop: 14, opacity: 0.7 }}>
+          TradePiGloball is not a party to transactions (showroom only).
+        </div>
       </div>
     </div>
   );
 }
 
-const inp = {
-  padding: 12,
+const page = { padding: 16, maxWidth: 980, margin: "0 auto" };
+const card = { padding: 16, borderRadius: 16, border: "1px solid rgba(255,255,255,.12)", background: "rgba(0,0,0,.22)" };
+const dbgBox = { marginTop: 12, padding: 10, border: "1px dashed #555", borderRadius: 12 };
+const row = { padding: 12, borderRadius: 14, border: "1px solid rgba(255,255,255,.10)", background: "rgba(255,255,255,.03)" };
+const inp = { padding: 12, borderRadius: 12, background: "rgba(0,0,0,.18)", color: "white", border: "1px solid rgba(255,255,255,.12)" };
+const btn = { padding: 12, borderRadius: 14, background: "#6d5cff", color: "white", border: "none", fontWeight: 900, cursor: "pointer" };
+const btn2 = { padding: "10px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.06)", color: "white", fontWeight: 900, cursor: "pointer" };
+const tabBtn = (active) => ({
+  padding: "10px 14px",
   borderRadius: 12,
-  background: "rgba(0,0,0,.18)",
+  border: active ? "1px solid rgba(160,120,255,.55)" : "1px solid rgba(255,255,255,.14)",
+  background: active ? "rgba(120,70,255,.22)" : "rgba(255,255,255,.06)",
   color: "white",
-  border: "1px solid rgba(255,255,255,.12)",
-};
-const txt = { ...inp, minHeight: 90 };
-const btn = { padding: 12, borderRadius: 14, background: "#6d5cff", color: "white", border: "none", fontWeight: 800 };
-const card = { padding: 12, marginTop: 10, borderRadius: 12, background: "rgba(0,0,0,.18)" };
-const dbgBox = { margin: "12px 0", padding: 10, border: "1px dashed #555", borderRadius: 12 };
+  fontWeight: 900,
+  cursor: "pointer",
+});
+const errBox = { marginTop: 12, padding: 12, borderRadius: 12, border: "1px solid rgba(255,0,0,.25)", background: "rgba(255,0,0,.06)" };
