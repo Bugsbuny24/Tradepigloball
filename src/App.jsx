@@ -18,7 +18,7 @@ import Products from "./pages/Products";
 import Store from "./pages/Store";
 import Stand from "./pages/Stand";
 
-import Credits from "./src/lib/credits.js";
+import Credits from "./pages/Credits"; // ✅ DÜZELTİLDİ (lib değil, page)
 
 export default function App() {
   return (
@@ -40,7 +40,7 @@ export default function App() {
         {/* Pi Payment */}
         <Route path="/pi/payment/:orderId" element={<PiPayment />} />
 
-        {/* Products + Store */}
+        {/* Products */}
         <Route path="/pi/products" element={<Products />} />
         <Route path="/store" element={<Store />} />
         <Route path="/stand/:slug" element={<Stand />} />
