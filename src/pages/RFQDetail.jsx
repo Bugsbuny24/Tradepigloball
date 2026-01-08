@@ -1,174 +1,161 @@
 import React from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { getAuthDebug } from "../lib/debugAuth";
 
 export default function RFQDetail() {
-  const { id } = useParams(); // rfq id
-  const nav = useNavigate();
+  const { id } = useParams();
 
-  const [loading, setLoading] = React.useState(true);
+  const [authDbg, setAuthDbg] = React.useState(null);
+  const [me, setMe] = React.useState(null);
+
   const [rfq, setRfq] = React.useState(null);
+  const [offers, setOffers] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
 
-  // teklif (sadece benim teklifim)
-  const [myOffer, setMyOffer] = React.useState(null);
+  // offer form (seller kendi teklifini girer/günceller)
   const [pricePi, setPricePi] = React.useState("");
   const [message, setMessage] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
 
-  // telefonda auth debug
-  const [authDbg, setAuthDbg] = React.useState(null);
+  const isBuyer = me?.id && rfq?.buyer_id && me.id === rfq.buyer_id;
 
-  async function loadAll() {
+  async function loadMe() {
+    const dbg = await getAuthDebug();
+    setAuthDbg(dbg);
+
+    const { data } = await supabase.auth.getUser();
+    setMe(data?.user || null);
+  }
+
+  async function loadRFQ() {
+    if (!id) return;
+
+    const { data, error } = await supabase
+      .from("rfqs")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.log(error);
+      setRfq(null);
+      return;
+    }
+    setRfq(data);
+  }
+
+  async function loadOffers() {
+    if (!id) return;
+
+    // RLS zaten filtreleyecek:
+    // - buyer ise: kendi rfq'suna gelen tüm offers
+    // - seller ise: sadece kendi offer'ı
+    const { data, error } = await supabase
+      .from("rfq_offers")
+      .select("*")
+      .eq("rfq_id", id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.log(error);
+      setOffers([]);
+      return;
+    }
+
+    setOffers(data || []);
+
+    // seller için formu kendi offer'ından dolduralım
+    const myOffer = (data || []).find(o => o.owner_id === me?.id);
+    if (myOffer) {
+      setPricePi(myOffer.price_pi ?? "");
+      setMessage(myOffer.message ?? "");
+    }
+  }
+
+  React.useEffect(() => {
+    (async () => {
+      await loadMe();
+      await loadRFQ();
+    })();
+
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async () => {
+      await loadMe();
+      await loadRFQ();
+    });
+
+    return () => sub?.subscription?.unsubscribe?.();
+  }, [id]);
+
+  React.useEffect(() => {
+    // me ve rfq geldikten sonra offers çek
+    if (!id) return;
+    if (me === null) return; // login yoksa seller offer insert de yapamasın
+
+    loadOffers();
+  }, [id, me?.id, rfq?.buyer_id]);
+
+  async function upsertMyOffer() {
+    if (!me?.id) {
+      alert("Önce Login ol kanka.");
+      return;
+    }
+    if (!id) return;
+
+    const p = pricePi === "" ? null : Number(pricePi);
+    if (p !== null && Number.isNaN(p)) {
+      alert("price_pi sayı olmalı kanka 😄");
+      return;
+    }
+
     setLoading(true);
     try {
-      const dbg = await getAuthDebug();
-      setAuthDbg(dbg);
+      // NOT: unique constraint yoksa duplicate offer çıkabilir.
+      // En sağlıklısı: rfq_offers'a UNIQUE(rfq_id, owner_id) eklemek.
+      // Şimdilik: önce benim offer var mı bak -> update/insert
+      const existing = offers.find(o => o.owner_id === me.id);
 
-      // RFQ çek
-      const { data: rfqRow, error: rfqErr } = await supabase
-        .from("rfqs")
-        .select("*")
-        .eq("id", id)
-        .single();
+      if (existing) {
+        const { error } = await supabase
+          .from("rfq_offers")
+          .update({
+            price_pi: p,
+            message: message || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id);
 
-      if (rfqErr) throw rfqErr;
-      setRfq(rfqRow);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("rfq_offers").insert({
+          rfq_id: id,
+          owner_id: me.id, // policy zaten owner_id=auth.uid ister
+          price_pi: p,
+          message: message || null,
+          status: "pending",
+        });
 
-      // login yoksa offer kısmını boş bırak
-      if (!dbg?.userId) {
-        setMyOffer(null);
-        setPricePi("");
-        setMessage("");
-        return;
+        if (error) throw error;
       }
 
-      // BENİM teklifim (owner_id = auth.uid)
-      const { data: offerRow, error: offerErr } = await supabase
-        .from("rfq_offers")
-        .select("*")
-        .eq("rfq_id", id)
-        .eq("owner_id", dbg.userId)
-        .maybeSingle();
-
-      if (offerErr) throw offerErr;
-
-      setMyOffer(offerRow || null);
-      setPricePi(offerRow?.price_pi?.toString?.() ?? "");
-      setMessage(offerRow?.message ?? "");
+      await loadOffers();
+      alert("Offer kaydedildi ✅");
+    } catch (e) {
+      alert(e?.message || "Hata");
     } finally {
       setLoading(false);
     }
   }
 
-  React.useEffect(() => {
-    loadAll();
-
-    // auth değişince yenile
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      loadAll();
-    });
-
-    return () => sub?.subscription?.unsubscribe?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  async function upsertMyOffer() {
-    setSaving(true);
-    try {
-      const dbg = await getAuthDebug();
-      setAuthDbg(dbg);
-
-      if (!dbg?.userId) {
-        alert("Önce Login ol kanka.");
-        return;
-      }
-
-      const p = Number(pricePi);
-      if (!pricePi || Number.isNaN(p) || p <= 0) {
-        alert("price_pi sayı olmalı (0'dan büyük).");
-        return;
-      }
-
-      // RLS doğruysa owner_id default auth.uid() ama biz yine de güvenli yazıyoruz
-      // (policy owner_id = auth.uid() izin veriyorsa sorun olmaz)
-      const payload = {
-        rfq_id: id,
-        owner_id: dbg.userId,
-        price_pi: p,
-        message: message || "",
-        status: "pending",
-      };
-
-      if (myOffer?.id) {
-        // update
-        const { error } = await supabase
-          .from("rfq_offers")
-          .update(payload)
-          .eq("id", myOffer.id);
-
-        if (error) throw error;
-        alert("Teklif güncellendi ✅");
-      } else {
-        // insert
-        const { error } = await supabase.from("rfq_offers").insert(payload);
-        if (error) throw error;
-        alert("Teklif gönderildi ✅");
-      }
-
-      await loadAll();
-    } catch (e) {
-      alert(e?.message || "Hata");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (loading) return <div style={{ padding: 16 }}>Loading...</div>;
-
-  if (!rfq)
-    return (
-      <div style={{ padding: 16 }}>
-        <div style={{ marginBottom: 10 }}>
-          <button onClick={() => nav(-1)} style={btnGhost}>
-            ← Back
-          </button>
-        </div>
-        RFQ bulunamadı.
-      </div>
-    );
-
   return (
     <div style={{ padding: 16 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <button onClick={() => nav(-1)} style={btnGhost}>
-          ← Back
-        </button>
-        <Link to="/rfqs" style={linkSoft}>
-          RFQs
-        </Link>
+        <Link to="/pi/rfqs" style={{ color: "#b9b4ff" }}>← RFQs</Link>
+        <div style={{ opacity: 0.7 }}>#{id}</div>
       </div>
 
       <h2 style={{ marginTop: 12 }}>RFQ Detail</h2>
 
-      {/* RFQ kart */}
-      <div style={card}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-          <b style={{ fontSize: 16 }}>{rfq.title}</b>
-          <span style={pill}>{rfq.status || "open"}</span>
-        </div>
-
-        {rfq.description ? <div style={{ marginTop: 8 }}>{rfq.description}</div> : null}
-
-        <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
-          {rfq.country ? <div>🌍 <b>Country:</b> {rfq.country}</div> : null}
-          {rfq.budget_pi != null ? <div>💰 <b>Budget (Pi):</b> {rfq.budget_pi}</div> : null}
-          {rfq.deadline ? <div>⏳ <b>Deadline:</b> {String(rfq.deadline)}</div> : null}
-          {rfq.notes ? <div>📝 <b>Notes:</b> {rfq.notes}</div> : null}
-        </div>
-      </div>
-
-      {/* Debug */}
       <div style={dbgBox}>
         <b>Auth Debug (telefon)</b>
         <div>userId: {authDbg?.userId ?? "-"}</div>
@@ -176,40 +163,82 @@ export default function RFQDetail() {
         <div>error: {authDbg?.error ?? "-"}</div>
       </div>
 
-      {/* Offer UI */}
-      <div style={{ marginTop: 14 }}>
-        <h3 style={{ marginBottom: 8 }}>My Offer</h3>
-
+      {!rfq ? (
+        <div style={{ opacity: 0.8 }}>RFQ bulunamadı / yükleniyor...</div>
+      ) : (
         <div style={card}>
-          <div style={{ opacity: 0.85, marginBottom: 10 }}>
-            Bu ekranda <b>sadece kendi teklifini</b> görürsün (auction’a dönmesin diye 👍)
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{rfq.title}</div>
+          {rfq.description ? <div style={{ marginTop: 6 }}>{rfq.description}</div> : null}
+          {rfq.notes ? <div style={{ marginTop: 6, opacity: 0.85 }}><b>Notes:</b> {rfq.notes}</div> : null}
+
+          <div style={{ marginTop: 10, display: "grid", gap: 6, opacity: 0.9 }}>
+            <div><b>Status:</b> {rfq.status}</div>
+            <div><b>Buyer:</b> {rfq.buyer_id}</div>
+            {rfq.country ? <div><b>Country:</b> {rfq.country}</div> : null}
+            {rfq.budget_pi != null ? <div><b>Budget (Pi):</b> {String(rfq.budget_pi)}</div> : null}
+            {rfq.deadline ? <div><b>Deadline:</b> {String(rfq.deadline)}</div> : null}
           </div>
+        </div>
+      )}
 
-          <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
-            <input
-              value={pricePi}
-              onChange={(e) => setPricePi(e.target.value)}
-              placeholder="price_pi (Pi)"
-              style={inp}
-              inputMode="decimal"
-            />
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="message"
-              style={txt}
-            />
+      <div style={{ marginTop: 14 }}>
+        <h3>Offers</h3>
 
-            <button onClick={upsertMyOffer} disabled={saving} style={btn}>
-              {saving ? "Saving..." : myOffer ? "Update Offer" : "Send Offer"}
-            </button>
+        {!me?.id ? (
+          <div style={{ opacity: 0.85 }}>Offer vermek için login olman lazım kanka.</div>
+        ) : (
+          <>
+            {!isBuyer ? (
+              <div style={card}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Senin Offer’ın</div>
 
-            {myOffer ? (
-              <div style={{ opacity: 0.85, fontSize: 13 }}>
-                Status: <b>{myOffer.status || "pending"}</b>
+                <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
+                  <input
+                    value={pricePi}
+                    onChange={(e) => setPricePi(e.target.value)}
+                    placeholder="price_pi (Pi)"
+                    style={inp}
+                  />
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="message"
+                    style={txt}
+                  />
+                  <button onClick={upsertMyOffer} disabled={loading} style={btn}>
+                    {loading ? "Saving..." : "Save Offer"}
+                  </button>
+
+                  <div style={{ opacity: 0.75, fontSize: 13 }}>
+                    Not: Seller sadece kendi offer’ını görür. Buyer kendi RFQ’suna gelen tüm offer’ları görür.
+                  </div>
+                </div>
               </div>
-            ) : null}
-          </div>
+            ) : (
+              <div style={{ opacity: 0.85, marginBottom: 10 }}>
+                Buyer mod: Bu RFQ’ya gelen tüm teklifleri görüyorsun.
+              </div>
+            )}
+          </>
+        )}
+
+        <div style={{ marginTop: 10 }}>
+          {offers.length ? (
+            offers.map(o => (
+              <div key={o.id} style={card}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                  <b>price_pi: {o.price_pi ?? "-"}</b>
+                  <span style={{ opacity: 0.75 }}>{o.status}</span>
+                </div>
+                <div style={{ marginTop: 6 }}>{o.message || <span style={{ opacity: 0.7 }}>(no message)</span>}</div>
+                <div style={{ marginTop: 8, opacity: 0.75, fontSize: 12 }}>
+                  owner_id: {o.owner_id}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ opacity: 0.8 }}>Henüz offer yok.</div>
+          )}
         </div>
       </div>
     </div>
@@ -217,33 +246,10 @@ export default function RFQDetail() {
 }
 
 const inp = {
-  padding: 12,
-  borderRadius: 12,
-  background: "rgba(0,0,0,.18)",
-  color: "white",
-  border: "1px solid rgba(255,255,255,.12)",
+  padding: 12, borderRadius: 12, background: "rgba(0,0,0,.18)",
+  color: "white", border: "1px solid rgba(255,255,255,.12)"
 };
 const txt = { ...inp, minHeight: 90 };
-const btn = { padding: 12, borderRadius: 14, background: "#6d5cff", color: "white" };
-const btnGhost = {
-  padding: "10px 12px",
-  borderRadius: 12,
-  background: "rgba(255,255,255,.08)",
-  color: "white",
-  border: "1px solid rgba(255,255,255,.10)",
-};
-const card = {
-  padding: 12,
-  marginTop: 10,
-  borderRadius: 14,
-  background: "rgba(0,0,0,.18)",
-  border: "1px solid rgba(255,255,255,.08)",
-};
-const pill = {
-  fontSize: 12,
-  padding: "4px 10px",
-  borderRadius: 999,
-  background: "rgba(255,255,255,.10)",
-};
-const dbgBox = { marginTop: 12, padding: 10, border: "1px dashed #555", borderRadius: 12 };
-const linkSoft = { color: "rgba(255,255,255,.85)", textDecoration: "none", padding: "8px 10px" };
+const btn = { padding: 12, borderRadius: 14, background: "#6d5cff", color: "white", border: "none" };
+const card = { padding: 12, marginTop: 10, borderRadius: 12, background: "rgba(0,0,0,.18)", border: "1px solid rgba(255,255,255,.06)" };
+const dbgBox = { margin: "12px 0", padding: 10, border: "1px dashed #555" };
