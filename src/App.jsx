@@ -6,7 +6,6 @@ import Login from "./pages/Login";
 import Products from "./pages/Products";
 import RFQs from "./pages/RFQs";
 import RFQDetail from "./pages/RFQDetail";
-import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
 import PiPayment from "./pages/PiPayment";
 
@@ -18,7 +17,6 @@ export default function App() {
         <Link style={a} to="/login">Login</Link>
         <Link style={a} to="/products">Products</Link>
         <Link style={a} to="/rfqs">RFQs</Link>
-        <Link style={a} to="/orders">Orders</Link>
       </div>
 
       <Routes>
@@ -28,9 +26,10 @@ export default function App() {
         <Route path="/rfqs" element={<RFQs />} />
         <Route path="/rfqs/:id" element={<RFQDetail />} />
 
-        <Route path="/orders" element={<Orders />} />
+        {/* Order */}
         <Route path="/orders/:id" element={<OrderDetail />} />
 
+        {/* Pi Payment */}
         <Route path="/pi/payment/:orderId" element={<PiPayment />} />
       </Routes>
     </Router>
