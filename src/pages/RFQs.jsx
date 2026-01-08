@@ -36,7 +36,6 @@ export default function RFQs() {
   async function loadCredits() {
     setCredits(null);
 
-    // telefon debug
     const dbg = await getAuthDebug();
     setAuthDbg(dbg);
 
@@ -45,7 +44,7 @@ export default function RFQs() {
       return;
     }
 
-    // 1) önce RPC: rpc_wallet_me -> integer döndürür (balance)
+    // 1) önce RPC: rpc_wallet_me -> balance döndürür
     const { data: rpcBal, error: rpcErr } = await supabase.rpc("rpc_wallet_me");
     if (!rpcErr) {
       const bal = typeof rpcBal === "number" ? rpcBal : Number(rpcBal);
@@ -53,7 +52,7 @@ export default function RFQs() {
       return;
     }
 
-    // 2) RPC yoksa / patladıysa fallback tablo: user_wallets.balance
+    // 2) fallback tablo: user_wallets.balance
     const { data: row, error: tErr } = await supabase
       .from("user_wallets")
       .select("balance")
@@ -65,7 +64,7 @@ export default function RFQs() {
       return;
     }
 
-    // 3) ikisi de patladıysa 0 göster (en azından UI stabil)
+    // 3) en kötü 0
     setCredits(0);
   }
 
@@ -73,7 +72,6 @@ export default function RFQs() {
     loadRFQs();
     loadCredits();
 
-    // auth değişirse otomatik yenile
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
       loadCredits();
       loadRFQs();
@@ -109,10 +107,12 @@ export default function RFQs() {
       // 1) önce kredi düş
       await spendCreditForRFQ();
 
-      // 2) sonra RFQ insert (NOT: rfqs tablosunda notes yoksa hata olmasın diye description içine gömüyoruz)
+      // 2) sonra RFQ insert (notes kolonu yoksa description içine göm)
       const payload = {
         title: title || "Test RFQ",
         description: buildDescription(desc, notes),
+        // Eğer DB’ye notes kolonu eklersek şunu açarız:
+        // notes: notes || "",
       };
 
       const { error } = await supabase.from("rfqs").insert(payload);
@@ -149,7 +149,9 @@ export default function RFQs() {
         <div>error: {authDbg?.error ?? "-"}</div>
       </div>
 
-      <div>RFQ açmak <b>1 kredi</b> yer.</div>
+      <div>
+        RFQ açmak <b>1 kredi</b> yer.
+      </div>
 
       <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
         <input
