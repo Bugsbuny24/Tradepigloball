@@ -1,11 +1,8 @@
 import { supabase } from "./supabaseClient";
 
 /**
- * Her şey "balance" üzerinden.
- * DB: public.user_wallets (user_id, balance)
- * RPC:
- *  - rpc_wallet_me() -> integer (balance)
- *  - rpc_credit_spend(p_action, p_amount, p_note) -> integer (new balance)
+ * SINGLE SOURCE OF TRUTH
+ * public.user_wallets (user_id, balance)
  */
 
 export const CREDIT_COST = {
@@ -13,6 +10,11 @@ export const CREDIT_COST = {
   PRODUCT_CREATE: 1,
 };
 
+/**
+ * Kullanıcı var mı + wallet var mı?
+ * VARSA → dokunma
+ * YOKSA → balance=0 ile oluştur
+ */
 export async function creditEnsure() {
   const {
     data: { user },
@@ -24,14 +26,19 @@ export async function creditEnsure() {
     throw err;
   }
 
-  // RLS ile insert allowed (user_id = auth.uid()) olmalı
+  // 🔥 KRİTİK DÜZELTME BURASI
   await supabase
     .from("user_wallets")
-    .upsert({ user_id: user.id, balance: 0 }, { onConflict: "user_id" });
+    .insert({ user_id: user.id, balance: 0 })
+    .onConflict("user_id")
+    .ignore(); // ⛔ overwrite YOK
 
   return user;
 }
 
+/**
+ * Kredi OKUMA — SADECE buradan
+ */
 export async function creditMe() {
   const user = await creditEnsure();
 
@@ -45,8 +52,10 @@ export async function creditMe() {
   return data?.balance ?? 0;
 }
 
+/**
+ * Kredi DÜŞME — SADECE rpc
+ */
 export async function creditSpend(action, amount, note = "") {
-  // credit düşmeden RFQ/Product açılmayacak -> önce spend
   const { data, error } = await supabase.rpc("rpc_credit_spend", {
     p_action: action,
     p_amount: amount,
@@ -54,12 +63,11 @@ export async function creditSpend(action, amount, note = "") {
   });
 
   if (error) {
-    // frontend'de kolay yakalamak için code bas
     const e = new Error(error.message);
-    e.code = error.message; // örn: YETERSIZ_KREDI / NOT_AUTHENTICATED
+    e.code = error.message; // YETERSIZ_KREDI | NOT_AUTHENTICATED
     throw e;
   }
 
-  // rpc integer döndürüyor: new balance
+  // rpc yeni balance döndürür
   return data ?? 0;
 }
