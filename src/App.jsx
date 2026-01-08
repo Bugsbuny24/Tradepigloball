@@ -6,7 +6,6 @@ import Login from "./pages/Login";
 import Products from "./pages/Products";
 import RFQs from "./pages/RFQs";
 import RFQDetail from "./pages/RFQDetail";
-
 export default function App() {
   return (
     <Router>
@@ -21,8 +20,8 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/products" element={<Products />} />
-        <Route path="/rfqs" element={<RFQs />} />
-        <Route path="/rfqs/:id" element={<RFQDetail />} />
+       <Route path="/rfqs" element={<RFQs />} />
+<Route path="/rfqs/:id" element={<RFQDetail />} />
       </Routes>
     </Router>
   );
