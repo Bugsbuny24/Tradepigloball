@@ -1,13 +1,13 @@
 import React from "react";
 import { supabase } from "../lib/supabase";
-import { creditSpend, CREDIT_COST } from "../lib/credits";
+import { CREDIT_COST } from "../lib/credits";
 
 export default function RFQs() {
   const [title, setTitle] = React.useState("");
-  const [desc, setDesc] = React.useState("");
+  const [description, setDescription] = React.useState("");
   const [notes, setNotes] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
   const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
 
   async function load() {
     const { data, error } = await supabase
@@ -23,35 +23,52 @@ export default function RFQs() {
     load();
   }, []);
 
-  async function onCreateRfQ() {
+  async function onCreateRFQ() {
     setLoading(true);
-    try {
-      // 1) kredi düş
-      await creditSpend("RFQ_CREATE", CREDIT_COST.RFQ_CREATE, "Create RFQ");
 
-      // 2) insert RFQ
-      const { error } = await supabase.from("rfqs").insert({
-        title: title || "Test RFQ",
-        description: desc || "",
-        notes: notes || "",
-      });
-      if (error) throw error;
+    try {
+      // 1️⃣ KREDİ DÜŞ
+      const { error: creditError } = await supabase.rpc(
+        "rpc_credit_spend",
+        {
+          p_action: "RFQ_CREATE",
+          p_amount: CREDIT_COST.RFQ_CREATE,
+          p_note: "rfq create",
+        }
+      );
+
+      if (creditError) throw creditError;
+
+      // 2️⃣ RFQ INSERT
+      const { error: insertError } = await supabase
+        .from("rfqs")
+        .insert({
+          title: title || "Test RFQ",
+          description: description || "",
+          notes: notes || "",
+        });
+
+      if (insertError) throw insertError;
 
       alert("RFQ created ✅");
+
       setTitle("");
-      setDesc("");
+      setDescription("");
       setNotes("");
+
       await load();
     } catch (e) {
-      if (e?.code === "YETERSIZ_KREDI") {
-        alert("Kredi bitti kanka 😅 Önce kredi alman lazım.");
+      if (e.code === "YETERSIZ_KREDI") {
+        alert("Kredi bitti kanka 😄 Önce kredi alman lazım.");
         return;
       }
-      if (e?.code === "NOT_AUTHENTICATED") {
-        alert("Önce Login ol kanka.");
+
+      if (e.code === "NOT_AUTHENTICATED") {
+        alert("Önce login ol kanka.");
         return;
       }
-      alert(e?.message || "Hata");
+
+      alert(e.message || "Hata");
       console.error(e);
     } finally {
       setLoading(false);
@@ -60,29 +77,55 @@ export default function RFQs() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>RFQs</h2>
+      <h2>RFQs</h2>
+
       <div style={{ opacity: 0.8, marginBottom: 12 }}>
-        RFQ açmak <b>1 kredi</b> yer.
+        RFQ açmak <b>{CREDIT_COST.RFQ_CREATE}</b> kredi yer.
       </div>
 
       <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" style={inp} />
-        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Description" style={txt} />
-        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes" style={inp} />
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Title"
+          style={inp}
+        />
 
-        <button onClick={onCreateRfQ} disabled={loading} style={btn}>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Description"
+          style={txt}
+        />
+
+        <input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Notes"
+          style={inp}
+        />
+
+        <button
+          onClick={onCreateRFQ}
+          disabled={loading}
+          style={btn}
+        >
           {loading ? "Working..." : "Create RFQ (1 credit)"}
         </button>
       </div>
 
-      <div style={{ marginTop: 18, opacity: 0.85 }}>
-        {items?.length ? (
+      <div style={{ marginTop: 18, opacity: 0.9 }}>
+        {items.length ? (
           <div style={{ display: "grid", gap: 10 }}>
             {items.map((x) => (
               <div key={x.id} style={card}>
-                <div style={{ fontWeight: 800 }}>{x.title}</div>
-                {x.description ? <div style={{ opacity: 0.85 }}>{x.description}</div> : null}
-                {x.notes ? <div style={{ opacity: 0.7, fontSize: 13 }}>{x.notes}</div> : null}
+                <div style={{ fontWeight: 700 }}>{x.title}</div>
+                {x.description && (
+                  <div style={{ opacity: 0.85 }}>{x.description}</div>
+                )}
+                {x.notes && (
+                  <div style={{ opacity: 0.7, fontSize: 13 }}>{x.notes}</div>
+                )}
               </div>
             ))}
           </div>
@@ -94,27 +137,34 @@ export default function RFQs() {
   );
 }
 
+/* ================= styles ================= */
+
 const inp = {
-  padding: "12px 12px",
+  padding: "12px",
   borderRadius: 12,
-  border: "1px solid rgba(255,255,255,.12)",
-  background: "rgba(0,0,0,.18)",
+  border: "1px solid rgba(255,255,255,.15)",
+  background: "rgba(0,0,0,.2)",
   color: "white",
-  outline: "none",
 };
-const txt = { ...inp, minHeight: 90, resize: "vertical" };
+
+const txt = {
+  ...inp,
+  minHeight: 90,
+  resize: "vertical",
+};
+
 const btn = {
-  padding: "12px 12px",
+  padding: "12px",
   borderRadius: 14,
-  border: "1px solid rgba(255,255,255,.12)",
+  border: "1px solid rgba(255,255,255,.2)",
   background: "rgba(130,90,255,.45)",
   color: "white",
   cursor: "pointer",
-  fontWeight: 800,
 };
+
 const card = {
-  padding: 12,
+  padding: 14,
   borderRadius: 14,
-  border: "1px solid rgba(255,255,255,.10)",
-  background: "rgba(0,0,0,.14)",
+  border: "1px solid rgba(255,255,255,.12)",
+  background: "rgba(0,0,0,.18)",
 };
