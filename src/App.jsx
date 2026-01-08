@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-
+import OrderDetail from "./pages/OrderDetail";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Products from "./pages/Products";
@@ -22,6 +22,7 @@ export default function App() {
         <Route path="/products" element={<Products />} />
        <Route path="/rfqs" element={<RFQs />} />
 <Route path="/rfqs/:id" element={<RFQDetail />} />
+  <Route path="/orders/:id" element={<OrderDetail />} />
       </Routes>
     </Router>
   );
