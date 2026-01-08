@@ -7,31 +7,24 @@ import Products from "./pages/Products";
 import RFQs from "./pages/RFQs";
 import RFQDetail from "./pages/RFQDetail";
 
-// ✅ Orders pages
 import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
+
+// ✅ NEW
+import PiPayment from "./pages/PiPayment";
 
 export default function App() {
   return (
     <Router>
       <div style={nav}>
-        <Link style={a} to="/">
-          Home
-        </Link>
-        <Link style={a} to="/login">
-          Login
-        </Link>
-        <Link style={a} to="/products">
-          Products
-        </Link>
-        <Link style={a} to="/rfqs">
-          RFQs
-        </Link>
+        <Link style={a} to="/">Home</Link>
+        <Link style={a} to="/login">Login</Link>
+        <Link style={a} to="/products">Products</Link>
+        <Link style={a} to="/rfqs">RFQs</Link>
+        <Link style={a} to="/orders">Orders</Link>
 
-        {/* ✅ Orders link */}
-        <Link style={a} to="/orders">
-          Orders
-        </Link>
+        {/* ✅ NEW */}
+        <Link style={a} to="/pi/pay">Pi Payment</Link>
       </div>
 
       <Routes>
@@ -41,9 +34,11 @@ export default function App() {
         <Route path="/rfqs" element={<RFQs />} />
         <Route path="/rfqs/:id" element={<RFQDetail />} />
 
-        {/* ✅ Orders routes */}
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
+
+        {/* ✅ NEW */}
+        <Route path="/pi/pay" element={<PiPayment />} />
       </Routes>
     </Router>
   );
@@ -58,8 +53,4 @@ const nav = {
   borderBottom: "1px solid rgba(255,255,255,.08)",
 };
 
-const a = {
-  color: "white",
-  textDecoration: "none",
-  opacity: 0.95,
-};
+const a = { color: "white", textDecoration: "none", opacity: 0.95 };
