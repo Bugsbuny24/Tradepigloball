@@ -6,10 +6,8 @@ import Login from "./pages/Login";
 import Products from "./pages/Products";
 import RFQs from "./pages/RFQs";
 import RFQDetail from "./pages/RFQDetail";
-
 import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
-
 import PiPayment from "./pages/PiPayment";
 
 export default function App() {
@@ -33,7 +31,6 @@ export default function App() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
 
-        {/* Pi payment order üstünden açılır */}
         <Route path="/pi/payment/:orderId" element={<PiPayment />} />
       </Routes>
     </Router>
@@ -47,5 +44,4 @@ const nav = {
   background: "rgba(0,0,0,.25)",
   borderBottom: "1px solid rgba(255,255,255,.08)",
 };
-
 const a = { color: "white", textDecoration: "none", opacity: 0.95 };
