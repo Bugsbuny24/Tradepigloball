@@ -23,7 +23,11 @@ export default function RFQs() {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (!error) setItems(data || []);
+    if (error) {
+      console.error("RFQ load error:", error);
+      return;
+    }
+    setItems(data || []);
   }
 
   // ✅ tek gerçek kaynak: user_wallets.balance
@@ -43,12 +47,18 @@ export default function RFQs() {
     return data?.balance ?? 0;
   }
 
+  async function refreshCredits() {
+    setCredits(null);
+    const bal = await fetchBalance();
+    setCredits(bal);
+  }
+
   React.useEffect(() => {
     loadRFQs();
-    fetchBalance().then(setCredits);
+    refreshCredits();
 
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      fetchBalance().then(setCredits);
+      refreshCredits();
       loadRFQs();
     });
 
@@ -63,7 +73,6 @@ export default function RFQs() {
     });
 
     if (error) throw error;
-    // ❌ burada setCredits yok
   }
 
   async function onCreateRFQ() {
@@ -77,14 +86,17 @@ export default function RFQs() {
         return;
       }
 
-      // 1️⃣ önce kredi düş (kredi düşmezse RFQ açılmaz)
+      // 1) önce kredi düş (kredi düşmezse RFQ açılmaz)
       await spendCreditForRFQ();
 
-      // 2️⃣ sonra RFQ insert
+      // 2) sonra RFQ insert
+      // ⚠️ rfqs tablosunda 'notes' kolonu yoksa, notes'u description'a gömüyoruz:
+      const mergedDesc =
+        (desc || "") + (notes ? `\n\nNotes: ${notes}` : "");
+
       const { error } = await supabase.from("rfqs").insert({
         title: title || "Test RFQ",
-        description: desc || "",
-        notes: notes || "",
+        description: mergedDesc,
       });
 
       if (error) throw error;
@@ -95,13 +107,9 @@ export default function RFQs() {
       setNotes("");
 
       await loadRFQs();
-if (error) {
-  alert("RFQ load error: " + error.message);
-  return;
-}
-setItems(data || []);
-      // 3️⃣ en sonda krediyi DB’den yeniden çek
-      setCredits(await fetchBalance());
+
+      // 3) en sonda krediyi DB’den yeniden çek
+      await refreshCredits();
     } catch (e) {
       if (e?.code === "YETERSIZ_KREDI") {
         alert("Kredi bitti kanka 😄");
@@ -112,6 +120,7 @@ setItems(data || []);
         return;
       }
       alert(e?.message || "Hata");
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -174,12 +183,7 @@ setItems(data || []);
     </div>
   );
 }
-const { error } = await supabase.from("rfqs").insert({
-  owner_id: dbg.userId,
-  title: title || "Test RFQ",
-  description: desc || "",
-  notes: notes || "",
-});
+
 const inp = {
   padding: 12,
   borderRadius: 12,
@@ -187,13 +191,14 @@ const inp = {
   color: "white",
   border: "1px solid rgba(255,255,255,.12)",
 };
-const txt = { ...inp, minHeight: 90 };
+const txt = { ...inp, minHeight: 90, resize: "vertical" };
 const btn = {
   padding: 12,
   borderRadius: 14,
   background: "#6d5cff",
   color: "white",
   border: "none",
+  cursor: "pointer",
 };
 const card = {
   padding: 12,
