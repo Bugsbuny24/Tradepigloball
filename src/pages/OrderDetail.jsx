@@ -288,3 +288,6 @@ const errBox = {
   whiteSpace: "pre-wrap",
   color: "white",
 };
+<Link to={`/pi/payment/${order.id}`}>
+  <button style={btn}>Pay with Pi</button>
+</Link>
