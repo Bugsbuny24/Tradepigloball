@@ -13,7 +13,7 @@ export default function RFQDetail() {
   const [credits, setCredits] = React.useState(null);
 
   const [rfq, setRfq] = React.useState(null);
-  const [offers, setOffers] = React.useState([]); // buyer ise kendi RFQ'suna gelenleri de görür
+  const [offers, setOffers] = React.useState([]);
   const [myOffer, setMyOffer] = React.useState(null);
 
   const [pricePi, setPricePi] = React.useState("");
@@ -56,14 +56,7 @@ export default function RFQDetail() {
   async function loadOffers(userId) {
     setOffers([]);
     setMyOffer(null);
-    setPricePi("");
-    setMessage("");
 
-    if (!userId) return;
-
-    // RLS otomatik filtreler:
-    // - seller: sadece kendi offer'ı gelir
-    // - buyer(rfq owner): rfq'ya gelen tüm offer'lar gelir
     const { data, error } = await supabase
       .from("rfq_offers")
       .select("*")
@@ -78,12 +71,15 @@ export default function RFQDetail() {
     const list = data || [];
     setOffers(list);
 
-    const mine = list.find((o) => o.owner_id === userId) || null;
-    setMyOffer(mine);
+    const mine = userId ? list.find((o) => o.owner_id === userId) : null;
+    setMyOffer(mine || null);
 
     if (mine) {
       setPricePi(mine.price_pi ?? "");
       setMessage(mine.message ?? "");
+    } else {
+      setPricePi("");
+      setMessage("");
     }
   }
 
@@ -112,6 +108,7 @@ export default function RFQDetail() {
       const userId = await loadAuth();
       if (userId) {
         await loadCredits();
+        await loadRFQ();
         await loadOffers(userId);
       }
     });
@@ -122,11 +119,10 @@ export default function RFQDetail() {
     };
   }, [id]);
 
-  async function saveOfferPaidFirstTime() {
-    if (!meId) {
-      alert("Önce login ol kanka.");
-      return;
-    }
+  const isBuyerOwner = meId && rfq?.buyer_id === meId;
+
+  async function saveOffer() {
+    if (!meId) return alert("Önce login ol kanka.");
 
     setSaving(true);
     setErr("");
@@ -138,7 +134,7 @@ export default function RFQDetail() {
         return;
       }
 
-      // ✅ Tek çağrı: offer yoksa kredi düşer, varsa bedava update
+      // ✅ tek çağrı: offer yoksa kredi düşer, varsa update bedava (subscription active ise hiç düşmez)
       const { data: offerId, error } = await supabase.rpc("rpc_offer_upsert_paid", {
         p_rfq_id: id,
         p_price_pi: p,
@@ -150,17 +146,14 @@ export default function RFQDetail() {
       alert(myOffer ? "Offer updated ✅" : "Offer created ✅");
       await loadCredits();
       await loadOffers(meId);
+
       return offerId;
     } catch (e) {
-      if (String(e?.message || "").includes("YETERSIZ_KREDI")) {
-        alert("Kredi bitti kanka 😄");
-        return;
-      }
-      if (String(e?.message || "").includes("NOT_AUTHENTICATED")) {
-        alert("Önce login ol kanka.");
-        return;
-      }
-      alert(e?.message || "Hata");
+      const msg = e?.message || String(e);
+      if (msg.includes("YETERSIZ_KREDI")) return alert("Kredi bitti kanka 😄");
+      if (msg.includes("NOT_AUTHENTICATED")) return alert("Önce login ol kanka.");
+      if (msg.includes("RFQ_NOT_OPEN")) return alert("RFQ artık open değil kanka.");
+      alert(msg || "Hata");
     } finally {
       setSaving(false);
     }
@@ -181,17 +174,19 @@ export default function RFQDetail() {
           <h2>RFQ Detail</h2>
           <div style={{ opacity: 0.85 }}>Bulunamadı.</div>
           {err ? <div style={{ marginTop: 10, color: "#ffb4b4" }}>{err}</div> : null}
-          <button style={btn2} onClick={() => nav("/rfqs")}>Back to RFQs</button>
+          <button style={btn2} onClick={() => nav("/rfqs")}>
+            Back to RFQs
+          </button>
         </div>
       </div>
     );
   }
 
-  const isBuyerOwner = meId && rfq?.buyer_id === meId;
-
   return (
     <div style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
-      <button style={btn2} onClick={() => nav("/rfqs")}>← Back</button>
+      <button style={btn2} onClick={() => nav("/rfqs")}>
+        ← Back
+      </button>
 
       <h2 style={{ marginTop: 12 }}>RFQ Detail</h2>
 
@@ -206,7 +201,7 @@ export default function RFQDetail() {
           <b>Credits</b>
           <div>{credits === null ? "..." : credits}</div>
           <div style={{ fontSize: 12, opacity: 0.75 }}>
-            Offer ilk kez: <b>2 kredi</b> (update bedava)
+            Offer ilk kez: <b>1 kredi</b> (update bedava)
           </div>
         </div>
       </div>
@@ -219,9 +214,11 @@ export default function RFQDetail() {
 
       <div style={card}>
         <div style={{ fontWeight: 900, fontSize: 18 }}>{rfq.title}</div>
-        <div style={{ marginTop: 8, whiteSpace: "pre-wrap", opacity: 0.95 }}>
-          {rfq.description || ""}
-        </div>
+
+        {rfq.description ? (
+          <div style={{ marginTop: 8, whiteSpace: "pre-wrap", opacity: 0.95 }}>{rfq.description}</div>
+        ) : null}
+
         {rfq.notes ? (
           <div style={{ marginTop: 10, whiteSpace: "pre-wrap", opacity: 0.85 }}>
             <b>Notes:</b> {rfq.notes}
@@ -232,10 +229,12 @@ export default function RFQDetail() {
           <div>id: {rfq.id}</div>
           <div>buyer_id: {rfq.buyer_id}</div>
           <div>status: {rfq.status}</div>
-          <div>you are: {isBuyerOwner ? "buyer(owner)" : "seller(view as offerer)"}</div>
+          <div>you are: {isBuyerOwner ? "buyer(owner)" : "seller(offerer)"}</div>
         </div>
       </div>
 
+      {/* Offer UI herkes için var, ama seller sadece kendi offer'ını görür.
+          Buyer kendi RFQ'suna gelen offer'ları aşağıda listeler. */}
       <div style={{ marginTop: 14 }}>
         <h3>My Offer</h3>
 
@@ -268,8 +267,8 @@ export default function RFQDetail() {
                 placeholder="message"
                 style={txt}
               />
-              <button onClick={saveOfferPaidFirstTime} disabled={saving} style={btn1}>
-                {saving ? "Saving..." : myOffer ? "Update Offer (free)" : "Create Offer (2 credits)"}
+              <button onClick={saveOffer} disabled={saving} style={btn1}>
+                {saving ? "Saving..." : myOffer ? "Update Offer (free)" : "Create Offer (1 credit)"}
               </button>
 
               <div style={{ fontSize: 12, opacity: 0.75 }}>
@@ -280,6 +279,7 @@ export default function RFQDetail() {
         )}
       </div>
 
+      {/* Buyer view: RFQ sahibi ise tüm teklifleri görsün */}
       {isBuyerOwner ? (
         <div style={{ marginTop: 14 }}>
           <h3>Offers on this RFQ (Buyer view)</h3>
@@ -296,9 +296,7 @@ export default function RFQDetail() {
                   <div style={{ fontWeight: 800 }}>
                     price_pi: {o.price_pi ?? "—"} <span style={{ opacity: 0.5 }}>•</span> status: {o.status}
                   </div>
-                  <div style={{ marginTop: 6, whiteSpace: "pre-wrap", opacity: 0.9 }}>
-                    {o.message || ""}
-                  </div>
+                  <div style={{ marginTop: 6, whiteSpace: "pre-wrap", opacity: 0.9 }}>{o.message || ""}</div>
                   <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
                     offer_id: {o.id} • owner_id: {o.owner_id}
                   </div>
@@ -350,7 +348,12 @@ const btn2 = {
   cursor: "pointer",
 };
 
-const dbgRow = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 };
+const dbgRow = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 10,
+  marginTop: 12,
+};
 
 const dbgBox = {
   padding: 10,
