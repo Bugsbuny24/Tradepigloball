@@ -95,7 +95,11 @@ export default function RFQs() {
       setNotes("");
 
       await loadRFQs();
-
+if (error) {
+  alert("RFQ load error: " + error.message);
+  return;
+}
+setItems(data || []);
       // 3️⃣ en sonda krediyi DB’den yeniden çek
       setCredits(await fetchBalance());
     } catch (e) {
