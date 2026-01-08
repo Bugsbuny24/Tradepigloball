@@ -174,7 +174,12 @@ setItems(data || []);
     </div>
   );
 }
-
+const { error } = await supabase.from("rfqs").insert({
+  owner_id: dbg.userId,
+  title: title || "Test RFQ",
+  description: desc || "",
+  notes: notes || "",
+});
 const inp = {
   padding: 12,
   borderRadius: 12,
