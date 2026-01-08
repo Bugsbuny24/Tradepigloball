@@ -1,79 +1,98 @@
+// src/pages/Products.jsx
 import React from "react";
-import { supabase } from "../lib/supabase";
-import { creditSpend, CREDIT_COST } from "../lib/credits";
+import { supabase } from "../lib/supabaseClient";
+import { getAuthDebug } from "../lib/debugAuth";
 
 export default function Products() {
-  const [title, setTitle] = React.useState("");
-  const [price, setPrice] = React.useState("");
+  const [name, setName] = React.useState("");
+  const [desc, setDesc] = React.useState("");
+  const [pricePi, setPricePi] = React.useState("");
+
   const [loading, setLoading] = React.useState(false);
   const [items, setItems] = React.useState([]);
 
+  const [authDbg, setAuthDbg] = React.useState(null);
+
   async function load() {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
+    const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false }).limit(50);
     if (!error) setItems(data || []);
   }
 
   React.useEffect(() => {
-    load();
+    (async () => {
+      const dbg = await getAuthDebug();
+      setAuthDbg(dbg);
+      await load();
+    })();
   }, []);
 
-  async function onCreateProduct() {
+  async function onCreate() {
+    const dbg = await getAuthDebug();
+    setAuthDbg(dbg);
+
+    if (!dbg?.userId) return alert("Önce Login ol kanka.");
+
+    const n = Number(String(pricePi).replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0) return alert("Price (Pi) zorunlu, 0'dan büyük sayı gir.");
+
     setLoading(true);
     try {
-      await creditSpend("PRODUCT_CREATE", CREDIT_COST.PRODUCT_CREATE, "Create Product");
+      const payload = {
+        owner_id: dbg.userId,
+        name: name || "Product",
+        description: desc || "",
+        price_pi: n,
+      };
 
-      const { error } = await supabase.from("products").insert({
-        title: title || "Demo Product",
-        price: Number(price || 0),
-      });
+      const { error } = await supabase.from("products").insert(payload);
       if (error) throw error;
 
-      alert("Product added ✅");
-      setTitle("");
-      setPrice("");
+      setName("");
+      setDesc("");
+      setPricePi("");
+
       await load();
+      alert("Product created ✅");
     } catch (e) {
-      if (e?.code === "YETERSIZ_KREDI") return alert("Kredi bitti kanka 😅 Ürün eklemek için kredi lazım.");
-      if (e?.code === "NOT_AUTHENTICATED") return alert("Önce Login ol kanka.");
       alert(e?.message || "Hata");
-      console.error(e);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div>
-      <h2 style={{ marginTop: 0 }}>Products</h2>
-      <div style={{ opacity: 0.8, marginBottom: 12 }}>
-        Ürün eklemek <b>1 kredi</b> yer.
+    <div style={{ padding: 16 }}>
+      <h2>Products</h2>
+
+      <div style={dbgBox}>
+        <b>Auth Debug</b>
+        <div>userId: {authDbg?.userId ?? "-"}</div>
+        <div>email: {authDbg?.email ?? "-"}</div>
       </div>
 
-      <div style={{ display: "grid", gap: 10, maxWidth: 420 }}>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" style={inp} />
-        <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price (number)" style={inp} />
+      <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" style={inp} />
+        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Description" style={txt} />
+        <input value={pricePi} onChange={(e) => setPricePi(e.target.value)} placeholder="Price (Pi)" style={inp} />
 
-        <button onClick={onCreateProduct} disabled={loading} style={btn}>
-          {loading ? "Working..." : "Create Product (1 credit)"}
+        <button onClick={onCreate} disabled={loading} style={btn}>
+          {loading ? "Working..." : "Create Product"}
         </button>
       </div>
 
       <div style={{ marginTop: 18 }}>
         {items?.length ? (
-          <div style={{ display: "grid", gap: 10 }}>
-            {items.map((x) => (
-              <div key={x.id} style={card}>
-                <div style={{ fontWeight: 800 }}>{x.title}</div>
-                <div style={{ opacity: 0.8 }}>Price: {x.price}</div>
+          items.map((x) => (
+            <div key={x.id} style={card}>
+              <b>{x.name ?? "Product"}</b>
+              <div style={{ whiteSpace: "pre-wrap", opacity: 0.9, marginTop: 6 }}>{x.description}</div>
+              <div style={{ marginTop: 8, opacity: 0.8 }}>
+                price_pi: <b>{x.price_pi ?? "-"}</b>
               </div>
-            ))}
-          </div>
+            </div>
+          ))
         ) : (
-          <div style={{ opacity: 0.8 }}>No products yet.</div>
+          <div>No products yet.</div>
         )}
       </div>
     </div>
@@ -81,25 +100,14 @@ export default function Products() {
 }
 
 const inp = {
-  padding: "12px 12px",
+  padding: 12,
   borderRadius: 12,
-  border: "1px solid rgba(255,255,255,.12)",
   background: "rgba(0,0,0,.18)",
   color: "white",
-  outline: "none",
-};
-const btn = {
-  padding: "12px 12px",
-  borderRadius: 14,
   border: "1px solid rgba(255,255,255,.12)",
-  background: "rgba(130,90,255,.45)",
-  color: "white",
-  cursor: "pointer",
-  fontWeight: 800,
 };
-const card = {
-  padding: 12,
-  borderRadius: 14,
-  border: "1px solid rgba(255,255,255,.10)",
-  background: "rgba(0,0,0,.14)",
-};
+
+const txt = { ...inp, minHeight: 90 };
+const btn = { padding: 12, borderRadius: 14, background: "#6d5cff", color: "white" };
+const card = { padding: 12, marginTop: 10, borderRadius: 12, background: "rgba(0,0,0,.18)" };
+const dbgBox = { margin: "12px 0", padding: 10, border: "1px dashed #555", borderRadius: 12 };
