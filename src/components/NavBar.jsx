@@ -1,86 +1,85 @@
-import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
+import { Link, useLocation } from "react-router-dom";
 
 export default function NavBar() {
-  const loc = useLocation();
-  const nav = useNavigate();
-  const [user, setUser] = React.useState(null);
+  const { pathname } = useLocation();
 
-  React.useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data?.user || null));
-    const { data: sub } = supabase.auth.onAuthStateChange(async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data?.user || null);
-    });
-    return () => sub?.subscription?.unsubscribe?.();
-  }, []);
-
-  async function logout() {
-    await supabase.auth.signOut();
-    nav("/login");
-  }
-
-  const Item = ({ to, children }) => {
-    const active = loc.pathname === to || loc.pathname.startsWith(to + "/");
-    return (
-      <Link to={to} style={link(active)}>
-        {children}
-      </Link>
-    );
-  };
+  const Item = ({ to, label }) => (
+    <Link
+      to={to}
+      style={{
+        padding: "8px 14px",
+        borderRadius: 999,
+        background: pathname.startsWith(to)
+          ? "linear-gradient(135deg,#7c5cff,#3dd6ff)"
+          : "rgba(255,255,255,.06)",
+        border: "1px solid rgba(255,255,255,.12)",
+        color: "#fff",
+        fontSize: 14,
+        fontWeight: 600,
+        opacity: pathname.startsWith(to) ? 1 : 0.85,
+      }}
+    >
+      {label}
+    </Link>
+  );
 
   return (
-    <div style={bar}>
-      <div style={inner}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <Link to="/" style={brand}>TradePiGloball</Link>
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        backdropFilter: "blur(14px)",
+        background: "rgba(10,14,30,.75)",
+        borderBottom: "1px solid rgba(255,255,255,.12)",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1100,
+          margin: "0 auto",
+          padding: "12px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        {/* Left */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <Link
+            to="/"
+            style={{
+              fontWeight: 800,
+              fontSize: 18,
+              letterSpacing: 0.3,
+            }}
+          >
+            TradePiGloball
+          </Link>
 
-          <Item to="/pi/products">Products</Item>
-          <Item to="/store">Stands</Item>
-          <Item to="/rfqs">RFQs</Item>
-          <Item to="/orders">Orders</Item>
-          <Item to="/credits">Credits</Item>
+          <Item to="/products" label="Products" />
+          <Item to="/stand" label="Stands" />
+          <Item to="/rfqs" label="RFQs" />
+          <Item to="/orders" label="Orders" />
+          <Item to="/credits" label="Credits" />
         </div>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          {user ? (
-            <>
-              <span style={{ opacity: 0.8, fontSize: 12 }}>
-                {user.email || user.id}
-              </span>
-              <button onClick={logout} style={btn2}>Logout</button>
-            </>
-          ) : (
-            <button onClick={() => nav("/login")} style={btn}>
-              Login
-            </button>
-          )}
-        </div>
+        {/* Right */}
+        <Link
+          to="/login"
+          style={{
+            padding: "9px 16px",
+            borderRadius: 999,
+            background: "linear-gradient(135deg,#7c5cff,#3dd6ff)",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: 14,
+          }}
+        >
+          Login
+        </Link>
       </div>
     </div>
   );
 }
-
-const bar = {
-  position: "sticky",
-  top: 0,
-  zIndex: 10,
-  background: "rgba(0,0,0,.75)",
-  borderBottom: "1px solid rgba(255,255,255,.10)",
-  backdropFilter: "blur(10px)",
-};
-const inner = { maxWidth: 1100, margin: "0 auto", padding: "10px 14px", display: "flex", justifyContent: "space-between", gap: 10 };
-const brand = { color: "white", textDecoration: "none", fontWeight: 900, letterSpacing: 0.2 };
-const link = (active) => ({
-  color: "white",
-  textDecoration: "none",
-  padding: "8px 10px",
-  borderRadius: 12,
-  border: active ? "1px solid rgba(160,120,255,.55)" : "1px solid rgba(255,255,255,.10)",
-  background: active ? "rgba(120,70,255,.22)" : "rgba(255,255,255,.04)",
-  fontSize: 13,
-  fontWeight: 800,
-});
-const btn = { padding: "8px 12px", borderRadius: 12, border: "none", background: "#6d5cff", color: "white", fontWeight: 900, cursor: "pointer" };
-const btn2 = { padding: "8px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.06)", color: "white", fontWeight: 900, cursor: "pointer" };
