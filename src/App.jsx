@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -9,17 +9,32 @@ import RFQDetail from "./pages/RFQDetail";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
+      <div style={nav}>
+        <Link style={a} to="/">Home</Link>
+        <Link style={a} to="/login">Login</Link>
+        <Link style={a} to="/products">Products</Link>
+        <Link style={a} to="/rfqs">RFQs</Link>
+      </div>
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/products" element={<Products />} />
         <Route path="/rfqs" element={<RFQs />} />
         <Route path="/rfqs/:id" element={<RFQDetail />} />
-
-        {/* fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
+
+const nav = {
+  display: "flex",
+  gap: 12,
+  padding: 12,
+  justifyContent: "flex-end",
+  background: "rgba(0,0,0,.25)",
+  borderBottom: "1px solid rgba(255,255,255,.08)",
+};
+
+const a = { color: "white", textDecoration: "none", opacity: 0.95 };
