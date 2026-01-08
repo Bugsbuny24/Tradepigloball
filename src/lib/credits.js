@@ -1,21 +1,38 @@
+// src/lib/credits.js
 import { supabase } from "./supabaseClient";
 
-// Ana fonksiyon
-export async function creditSpend(action, amount = 1, note = "") {
-  const { data, error } = await supabase.rpc("rpc_credit_spend", {
-    p_action: String(action),
-    p_amount: Number(amount),
-    p_note: String(note || ""),
+/**
+ * Kullanıcının kredisini düşer (RPC)
+ * action örn: 'RFQ_CREATE', 'RFQ_OFFER'
+ */
+export async function spendCredit(action, amount = 1, note = "") {
+  const { data, error } = await supabase.rpc("credit_spend", {
+    p_action: action,
+    p_amount: amount,
+    p_note: note,
   });
 
   if (error) {
-    // Supabase error objesini daha okunur hale getir
-    const e = new Error(error.message || "credit spend failed");
-    e.code = error.code || error.message;
-    throw e;
+    console.error("spendCredit error:", error);
+    throw error;
   }
+
   return data;
 }
 
-// ✅ Geriye uyumluluk: RFQDetail "spendCredit" import ediyorsa patlamasın
-export const spendCredit = creditSpend;
+/**
+ * Kullanıcının toplam kredisini getirir
+ */
+export async function getCredits(userId) {
+  const { data, error } = await supabase
+    .from("credit_ledger")
+    .select("amount")
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("getCredits error:", error);
+    throw error;
+  }
+
+  return (data || []).reduce((sum, r) => sum + Number(r.amount || 0), 0);
+}
