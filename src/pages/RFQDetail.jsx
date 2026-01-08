@@ -31,7 +31,21 @@ export default function RFQDetail() {
     if (!error && data) setCredits(data.balance ?? 0);
     else setCredits(0);
   }
+async function acceptOffer(offerId) {
+  const { data, error } = await supabase.rpc("rpc_accept_offer", {
+    p_offer_id: offerId,
+  });
 
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  // data = order_id dönüyor
+  const orderId = data;
+  alert("Order created ✅");
+  window.location.href = `/orders/${orderId}`;
+}
   async function loadRFQ() {
     const { data, error } = await supabase.from("rfqs").select("*").eq("id", id).maybeSingle();
     if (error) throw error;
