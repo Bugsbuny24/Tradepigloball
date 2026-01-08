@@ -44,7 +44,7 @@ export default function RFQs() {
       return;
     }
 
-    // 1) önce RPC: rpc_wallet_me -> balance döndürür
+    // 1) önce RPC: rpc_wallet_me() -> balance döndürür (satır yoksa da oluşturup döndürebilir)
     const { data: rpcBal, error: rpcErr } = await supabase.rpc("rpc_wallet_me");
     if (!rpcErr) {
       const bal = typeof rpcBal === "number" ? rpcBal : Number(rpcBal);
@@ -90,7 +90,38 @@ export default function RFQs() {
     if (error) throw error;
 
     const newBal = typeof data === "number" ? data : Number(data);
-    if (!Number.isNaN(newBal)) setCredits(newBal);
+    if (Number.isFinite(newBal)) setCredits(newBal);
+  }
+
+  async function insertRFQWithFallback(userId) {
+    // 1) normal dene: buyer_id + notes kolonu ile
+    const payload1 = {
+      buyer_id: userId,
+      title: title || "Test RFQ",
+      description: desc || "",
+      notes: notes || "",
+    };
+
+    const r1 = await supabase.from("rfqs").insert(payload1);
+    if (!r1.error) return;
+
+    // notes kolonu cache/şema yüzünden yoksa -> description içine göm ve tekrar dene
+    const msg = String(r1.error?.message || "");
+    const looksLikeMissingNotes =
+      msg.toLowerCase().includes("could not find") && msg.toLowerCase().includes("notes");
+
+    if (!looksLikeMissingNotes) {
+      throw r1.error;
+    }
+
+    const payload2 = {
+      buyer_id: userId,
+      title: title || "Test RFQ",
+      description: buildDescription(desc, notes),
+    };
+
+    const r2 = await supabase.from("rfqs").insert(payload2);
+    if (r2.error) throw r2.error;
   }
 
   async function onCreateRFQ() {
@@ -107,16 +138,8 @@ export default function RFQs() {
       // 1) önce kredi düş
       await spendCreditForRFQ();
 
-      // 2) sonra RFQ insert (notes kolonu yoksa description içine göm)
-      const payload = {
-        title: title || "Test RFQ",
-        description: buildDescription(desc, notes),
-        // Eğer DB’ye notes kolonu eklersek şunu açarız:
-        // notes: notes || "",
-      };
-
-      const { error } = await supabase.from("rfqs").insert(payload);
-      if (error) throw error;
+      // 2) sonra RFQ insert (owner_id YOK, buyer_id var)
+      await insertRFQWithFallback(dbg.userId);
 
       alert("RFQ created ✅");
       setTitle("");
@@ -154,24 +177,9 @@ export default function RFQs() {
       </div>
 
       <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title"
-          style={inp}
-        />
-        <textarea
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          placeholder="Description"
-          style={txt}
-        />
-        <input
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Notes"
-          style={inp}
-        />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" style={inp} />
+        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Description" style={txt} />
+        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes" style={inp} />
 
         <button onClick={onCreateRFQ} disabled={loading} style={btn}>
           {loading ? "Working..." : "Create RFQ (1 credit)"}
@@ -179,14 +187,19 @@ export default function RFQs() {
       </div>
 
       <div style={{ marginTop: 18 }}>
-        {items.length
-          ? items.map((x) => (
-              <div key={x.id} style={card}>
-                <b>{x.title}</b>
-                <div style={{ whiteSpace: "pre-wrap" }}>{x.description}</div>
+        {items.length ? (
+          items.map((x) => (
+            <div key={x.id} style={card}>
+              <b>{x.title}</b>
+              <div style={{ whiteSpace: "pre-wrap" }}>
+                {x.description}
+                {x.notes ? `\n\nNotes: ${x.notes}` : ""}
               </div>
-            ))
-          : "No RFQs yet."}
+            </div>
+          ))
+        ) : (
+          "No RFQs yet."
+        )}
       </div>
     </div>
   );
