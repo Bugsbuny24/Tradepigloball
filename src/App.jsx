@@ -18,7 +18,7 @@ import Products from "./pages/Products";
 import Store from "./pages/Store";
 import Stand from "./pages/Stand";
 
-import Credits from "./pages/Credits";
+import Credits from "./src/lib/credits.js";
 
 export default function App() {
   return (
