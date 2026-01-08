@@ -6,7 +6,6 @@ import Login from "./pages/Login";
 import Products from "./pages/Products";
 import RFQs from "./pages/RFQs";
 import RFQDetail from "./pages/RFQDetail";
-import Apply from "./pages/Apply";
 
 export default function App() {
   return (
@@ -17,7 +16,6 @@ export default function App() {
         <Route path="/products" element={<Products />} />
         <Route path="/rfqs" element={<RFQs />} />
         <Route path="/rfqs/:id" element={<RFQDetail />} />
-        <Route path="/apply" element={<Apply />} />
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
