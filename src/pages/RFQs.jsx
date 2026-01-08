@@ -112,9 +112,10 @@ export default function RFQs() {
 
       if (inserted?.id) nav(`/rfqs/${inserted.id}`);
     } catch (e) {
-      if (String(e?.message || "").includes("YETERSIZ_KREDI")) return alert("Kredi bitti kanka 😄");
-      if (String(e?.message || "").includes("NOT_AUTHENTICATED")) return alert("Önce Login ol kanka.");
-      alert(e?.message || "Hata");
+      const msg = e?.message || String(e);
+      if (msg.includes("YETERSIZ_KREDI")) return alert("Kredi bitti kanka 😄");
+      if (msg.includes("NOT_AUTHENTICATED")) return alert("Önce Login ol kanka.");
+      alert(msg || "Hata");
     } finally {
       setLoading(false);
     }
