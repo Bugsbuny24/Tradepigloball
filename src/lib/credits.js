@@ -1,73 +1,21 @@
 import { supabase } from "./supabaseClient";
 
-/**
- * SINGLE SOURCE OF TRUTH
- * public.user_wallets (user_id, balance)
- */
-
-export const CREDIT_COST = {
-  RFQ_CREATE: 1,
-  PRODUCT_CREATE: 1,
-};
-
-/**
- * Kullanıcı var mı + wallet var mı?
- * VARSA → dokunma
- * YOKSA → balance=0 ile oluştur
- */
-export async function creditEnsure() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    const err = new Error("NOT_AUTHENTICATED");
-    err.code = "NOT_AUTHENTICATED";
-    throw err;
-  }
-
-  // 🔥 KRİTİK DÜZELTME BURASI
-  await supabase
-    .from("user_wallets")
-    .insert({ user_id: user.id, balance: 0 })
-    .onConflict("user_id")
-    .ignore(); // ⛔ overwrite YOK
-
-  return user;
-}
-
-/**
- * Kredi OKUMA — SADECE buradan
- */
-export async function creditMe() {
-  const user = await creditEnsure();
-
-  const { data, error } = await supabase
-    .from("user_wallets")
-    .select("balance")
-    .eq("user_id", user.id)
-    .single();
-
-  if (error) throw error;
-  return data?.balance ?? 0;
-}
-
-/**
- * Kredi DÜŞME — SADECE rpc
- */
-export async function creditSpend(action, amount, note = "") {
+// Ana fonksiyon
+export async function creditSpend(action, amount = 1, note = "") {
   const { data, error } = await supabase.rpc("rpc_credit_spend", {
-    p_action: action,
-    p_amount: amount,
-    p_note: note,
+    p_action: String(action),
+    p_amount: Number(amount),
+    p_note: String(note || ""),
   });
 
   if (error) {
-    const e = new Error(error.message);
-    e.code = error.message; // YETERSIZ_KREDI | NOT_AUTHENTICATED
+    // Supabase error objesini daha okunur hale getir
+    const e = new Error(error.message || "credit spend failed");
+    e.code = error.code || error.message;
     throw e;
   }
-
-  // rpc yeni balance döndürür
-  return data ?? 0;
+  return data;
 }
+
+// ✅ Geriye uyumluluk: RFQDetail "spendCredit" import ediyorsa patlamasın
+export const spendCredit = creditSpend;
