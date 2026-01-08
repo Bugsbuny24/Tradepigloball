@@ -1,135 +1,256 @@
-import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
-import { getAuthDebug } from "../lib/debugAuth";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import supabase from "../lib/supabaseClient";
+
+function money(n) {
+  if (n === null || n === undefined) return "-";
+  const x = Number(n);
+  if (Number.isNaN(x)) return String(n);
+  return x.toFixed(4).replace(/\.?0+$/, "");
+}
 
 export default function PiPayment() {
-  const { orderId } = useParams();
+  const { orderId } = useParams(); // route: /pi/payment/:orderId
   const nav = useNavigate();
 
-  const [authDbg, setAuthDbg] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
-  const [err, setErr] = React.useState("");
-  const [ok, setOk] = React.useState("");
+  const [me, setMe] = useState(null);
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [piReady, setPiReady] = useState(false);
 
-  const [order, setOrder] = React.useState(null);
-  const [txid, setTxid] = React.useState("");
+  const isPiBrowser = useMemo(() => typeof window !== "undefined" && !!window.Pi, []);
 
-  const [busy, setBusy] = React.useState(false);
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      setMsg("");
 
-  async function load() {
-    setLoading(true);
-    setErr("");
-    setOk("");
-    try {
-      const dbg = await getAuthDebug();
-      setAuthDbg(dbg);
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth?.user) {
+        setLoading(false);
+        setMsg("Login gerekli.");
+        return;
+      }
+      setMe(auth.user);
 
-      const { data, error } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
-      if (error) throw error;
-      setOrder(data || null);
-    } catch (e) {
-      setErr(e?.message || "Load error");
-      setOrder(null);
-    } finally {
+      const { data: o, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", orderId)
+        .single();
+
+      if (error) {
+        setLoading(false);
+        setMsg(error.message);
+        return;
+      }
+
+      setOrder(o);
       setLoading(false);
-    }
-  }
 
-  React.useEffect(() => {
-    load();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => load());
-    return () => sub?.subscription?.unsubscribe?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      // Pi init
+      if (typeof window !== "undefined" && window.Pi) {
+        try {
+          // Sandbox = false => GERÇEK ödeme
+          window.Pi.init({ version: "2.0", sandbox: false });
+          setPiReady(true);
+        } catch (e) {
+          console.error(e);
+          setPiReady(false);
+        }
+      } else {
+        setPiReady(false);
+      }
+    })();
   }, [orderId]);
 
-  async function confirmPaid() {
-    setBusy(true);
-    setErr("");
-    setOk("");
+  async function refreshOrder() {
+    const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).single();
+    if (o) setOrder(o);
+  }
+
+  async function startPiPayment() {
+    setMsg("");
+    if (!me) return setMsg("Login gerekli.");
+    if (!order) return setMsg("Order bulunamadı.");
+    if (!isPiBrowser) return setMsg("Pi ödeme sadece Pi Browser içinde açılır.");
+    if (!piReady) return setMsg("Pi SDK hazır değil. Sayfayı yenile.");
+
+    // Ödeme tutarı: order.price_pi varsa onu kullan; yoksa amount_pi
+    const amount = Number(order.price_pi ?? order.amount_pi ?? 0);
+    if (!amount || amount <= 0) return setMsg("Geçersiz tutar (Pi).");
+
+    setPaying(true);
+
     try {
-      if (!authDbg?.userId) throw new Error("Not authenticated");
-      if (!order) throw new Error("Order not found");
-      if (!txid.trim()) throw new Error("txid required");
-
-      // 1) pi_payments insert
-      const { error: pe } = await supabase.from("pi_payments").insert({
-        user_id: authDbg.userId,
-        order_id: order.id,
-        amount_pi: order.amount_pi ?? order.price_pi ?? 0,
-        memo: "order payment",
-        txid: txid.trim(),
-        status: "completed",
+      // 1) Backend’den “payment identifier” üret
+      const createRes = await fetch("/api/pi/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_id: order.id,
+          amount_pi: amount,
+          memo: `TradePiGloball Order:${order.id}`,
+        }),
       });
-      if (pe) throw pe;
 
-      // 2) order status -> paid
-      const { error: oe } = await supabase
-        .from("orders")
-        .update({ status: "paid", updated_at: new Date().toISOString() })
-        .eq("id", order.id);
-      if (oe) throw oe;
+      const created = await createRes.json();
+      if (!createRes.ok) throw new Error(created?.error || "Payment create failed");
 
-      setOk("Payment saved ✅ Order marked as PAID ✅");
-      setTimeout(() => nav(`/orders/${order.id}`), 600);
+      const paymentData = {
+        amount: created.amount, // number
+        memo: created.memo, // string
+        metadata: created.metadata, // object
+      };
+
+      // 2) Pi ödeme ekranını aç (GERÇEK)
+      window.Pi.createPayment(paymentData, {
+        onReadyForServerApproval: async (piPaymentId) => {
+          // Pi “approve” ister -> backend’e onaylat
+          const r = await fetch("/api/pi/approve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pi_payment_id: piPaymentId, order_id: order.id }),
+          });
+          const j = await r.json();
+          if (!r.ok) throw new Error(j?.error || "Approve failed");
+        },
+
+        onReadyForServerCompletion: async (piPaymentId, txid) => {
+          // Pi “complete” ister -> backend’e tamamlat
+          const r = await fetch("/api/pi/complete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pi_payment_id: piPaymentId,
+              txid,
+              order_id: order.id,
+              amount_pi: amount,
+            }),
+          });
+          const j = await r.json();
+          if (!r.ok) throw new Error(j?.error || "Complete failed");
+
+          setMsg("✅ Ödeme tamamlandı.");
+          await refreshOrder();
+        },
+
+        onCancel: (piPaymentId) => {
+          console.log("Payment cancelled:", piPaymentId);
+          setMsg("Ödeme iptal edildi.");
+        },
+
+        onError: (err) => {
+          console.error("Pi payment error:", err);
+          setMsg(err?.message || "Pi ödeme hatası.");
+        },
+      });
     } catch (e) {
-      setErr(e?.message || "Payment error (RLS?)");
+      console.error(e);
+      setMsg(e.message || "Ödeme başlatılamadı.");
     } finally {
-      setBusy(false);
+      setPaying(false);
     }
   }
 
-  if (loading) return <div style={page}><div style={card}>Loading…</div></div>;
-  if (err && !order) return <div style={page}><div style={card}><b>Hata:</b> {err}</div></div>;
-  if (!order) return <div style={page}><div style={card}>Order not found.</div></div>;
+  if (loading) {
+    return (
+      <div style={{ padding: 16 }}>
+        <h2>Pi Payment</h2>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div style={{ padding: 16 }}>
+        <h2>Pi Payment</h2>
+        <p>Order bulunamadı.</p>
+        {msg ? <p style={{ opacity: 0.9 }}>{msg}</p> : null}
+      </div>
+    );
+  }
 
   return (
-    <div style={page}>
-      <div style={card}>
-        <h2 style={{ margin: 0 }}>Pi Payment</h2>
+    <div style={{ padding: 16, maxWidth: 720 }}>
+      <button onClick={() => nav(-1)} style={{ marginBottom: 12 }}>
+        ← Back
+      </button>
 
-        <div style={{ marginTop: 10, opacity: 0.9 }}>
-          <div><b>Order:</b> {order.id}</div>
-          <div><b>Status:</b> {order.status}</div>
-          <div><b>Amount Pi:</b> {order.amount_pi}</div>
-        </div>
+      <h2 style={{ margin: 0 }}>Pi Payment</h2>
+      <p style={{ marginTop: 6, opacity: 0.9 }}>
+        Bu ekran gerçek Pi ödemesi içindir. Pi Browser ile açılmalıdır.
+      </p>
 
-        <div style={dbgBox}>
-          <b>Auth Debug</b>
-          <div>userId: {authDbg?.userId ?? "-"}</div>
-          <div>email: {authDbg?.email ?? "-"}</div>
-        </div>
+      <div
+        style={{
+          marginTop: 12,
+          padding: 14,
+          borderRadius: 12,
+          border: "1px solid rgba(255,255,255,.12)",
+          background: "rgba(0,0,0,.25)",
+        }}
+      >
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ opacity: 0.7, fontSize: 12 }}>Order ID</div>
+            <div style={{ fontFamily: "monospace" }}>{order.id}</div>
+          </div>
 
-        {err ? <div style={errBox}><b>Hata:</b> {err}</div> : null}
-        {ok ? <div style={okBox}>{ok}</div> : null}
+          <div>
+            <div style={{ opacity: 0.7, fontSize: 12 }}>Status</div>
+            <div>{order.status}</div>
+          </div>
 
-        <div style={{ marginTop: 12, display: "grid", gap: 10, maxWidth: 520 }}>
-          <input
-            value={txid}
-            onChange={(e) => setTxid(e.target.value)}
-            placeholder="Pi txid (manual for now)"
-            style={inp}
-          />
-          <button onClick={confirmPaid} disabled={busy} style={btn}>
-            {busy ? "Working..." : "Confirm Paid"}
-          </button>
-
-          <button style={btn2} onClick={() => nav(`/orders/${order.id}`)}>Back to Order</button>
-
-          <div style={{ opacity: 0.7 }}>
-            Şimdilik txid manuel. Pi SDK entegre olunca bu ekranda “Pay” butonu txid’yi otomatik dolduracak.
+          <div>
+            <div style={{ opacity: 0.7, fontSize: 12 }}>Amount (Pi)</div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>
+              {money(order.price_pi ?? order.amount_pi ?? 0)} Pi
+            </div>
           </div>
         </div>
+
+        <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            onClick={startPiPayment}
+            disabled={paying || !isPiBrowser}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,.18)",
+              background: paying ? "rgba(255,255,255,.08)" : "rgba(80,140,255,.25)",
+              cursor: paying ? "not-allowed" : "pointer",
+              fontWeight: 700,
+            }}
+          >
+            {paying ? "Opening Pi..." : "Pay with Pi"}
+          </button>
+
+          <button
+            onClick={refreshOrder}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,.18)",
+              background: "rgba(255,255,255,.06)",
+              cursor: "pointer",
+            }}
+          >
+            Refresh
+          </button>
+        </div>
+
+        {!isPiBrowser ? (
+          <div style={{ marginTop: 10, opacity: 0.85 }}>
+            ⚠️ Pi SDK bulunamadı. Bu sayfayı **Pi Browser** ile aç.
+          </div>
+        ) : null}
+
+        {msg ? <div style={{ marginTop: 10, opacity: 0.95 }}>{msg}</div> : null}
       </div>
     </div>
   );
 }
-
-const page = { padding: 16, maxWidth: 980, margin: "0 auto" };
-const card = { padding: 16, borderRadius: 16, border: "1px solid rgba(255,255,255,.12)", background: "rgba(0,0,0,.22)" };
-const dbgBox = { marginTop: 12, padding: 10, border: "1px dashed #555", borderRadius: 12 };
-const inp = { padding: 12, borderRadius: 12, background: "rgba(0,0,0,.18)", color: "white", border: "1px solid rgba(255,255,255,.12)" };
-const btn = { padding: 12, borderRadius: 14, background: "#6d5cff", color: "white", border: "none", fontWeight: 900, cursor: "pointer" };
-const btn2 = { padding: 12, borderRadius: 14, background: "rgba(255,255,255,.06)", color: "white", border: "1px solid rgba(255,255,255,.14)", fontWeight: 800, cursor: "pointer" };
-const errBox = { marginTop: 12, padding: 12, borderRadius: 12, border: "1px solid rgba(255,0,0,.25)", background: "rgba(255,0,0,.06)" };
-const okBox = { marginTop: 12, padding: 12, borderRadius: 12, border: "1px solid rgba(0,255,0,.18)", background: "rgba(0,255,0,.06)" };
