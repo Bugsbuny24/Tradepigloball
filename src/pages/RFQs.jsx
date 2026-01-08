@@ -23,42 +23,49 @@ export default function RFQs() {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (error) {
-      console.error("RFQ load error:", error);
-      return;
-    }
-    setItems(data || []);
+    if (!error) setItems(data || []);
   }
 
-  // ✅ tek gerçek kaynak: user_wallets.balance
-  async function fetchBalance() {
+  async function loadCredits() {
+    setCredits(null);
+
     const dbg = await getAuthDebug();
     setAuthDbg(dbg);
 
-    if (!dbg?.userId) return 0;
+    if (!dbg?.userId) {
+      setCredits(null);
+      return;
+    }
 
-    const { data, error } = await supabase
+    // 1) önce RPC: rpc_wallet_me
+    const { data: w, error: wErr } = await supabase.rpc("rpc_wallet_me");
+    if (!wErr) {
+      const n = typeof w === "number" ? w : Number(w);
+      setCredits(Number.isFinite(n) ? n : 0);
+      return;
+    }
+
+    // 2) fallback tablo: user_wallets.balance (mutlaka user_id ile filtrele)
+    const { data: row, error: tErr } = await supabase
       .from("user_wallets")
       .select("balance")
       .eq("user_id", dbg.userId)
       .single();
 
-    if (error) return 0;
-    return data?.balance ?? 0;
-  }
+    if (!tErr) {
+      setCredits(row?.balance ?? 0);
+      return;
+    }
 
-  async function refreshCredits() {
     setCredits(null);
-    const bal = await fetchBalance();
-    setCredits(bal);
   }
 
   React.useEffect(() => {
     loadRFQs();
-    refreshCredits();
+    loadCredits();
 
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      refreshCredits();
+      loadCredits();
       loadRFQs();
     });
 
@@ -66,13 +73,46 @@ export default function RFQs() {
   }, []);
 
   async function spendCreditForRFQ() {
-    const { error } = await supabase.rpc("rpc_credit_spend", {
+    const { data, error } = await supabase.rpc("rpc_credit_spend", {
       p_action: "RFQ_CREATE",
       p_amount: CREDIT_COST.RFQ_CREATE,
       p_note: "rfq create",
     });
 
     if (error) throw error;
+
+    // rpc yeni balance döndürüyorsa anında UI güncelle
+    const newBal = typeof data === "number" ? data : Number(data);
+    if (!Number.isNaN(newBal)) setCredits(newBal);
+  }
+
+  async function insertRFQWithSafeFallback({ ownerId }) {
+    // normal payload
+    const payload = {
+      owner_id: ownerId, // RLS ile güvenli hale getiriyoruz (aşağıda anlatıyorum)
+      title: title || "Test RFQ",
+      description: desc || "",
+      notes: notes || "",
+    };
+
+    // 1) notes'lu dene
+    let res = await supabase.from("rfqs").insert(payload);
+    if (!res.error) return res;
+
+    // 2) notes kolonu yoksa: notes'suz tekrar dene
+    const msg = String(res.error?.message || "");
+    if (msg.toLowerCase().includes("could not find the 'notes' column")) {
+      const payload2 = {
+        owner_id: ownerId,
+        title: title || "Test RFQ",
+        description: desc || "",
+      };
+      res = await supabase.from("rfqs").insert(payload2);
+      if (!res.error) return res;
+    }
+
+    // hala error varsa fırlat
+    throw res.error;
   }
 
   async function onCreateRFQ() {
@@ -86,20 +126,11 @@ export default function RFQs() {
         return;
       }
 
-      // 1) önce kredi düş (kredi düşmezse RFQ açılmaz)
+      // 1) önce kredi düş (düşmezse RFQ açılmaz)
       await spendCreditForRFQ();
 
       // 2) sonra RFQ insert
-      // ⚠️ rfqs tablosunda 'notes' kolonu yoksa, notes'u description'a gömüyoruz:
-      const mergedDesc =
-        (desc || "") + (notes ? `\n\nNotes: ${notes}` : "");
-
-      const { error } = await supabase.from("rfqs").insert({
-        title: title || "Test RFQ",
-        description: mergedDesc,
-      });
-
-      if (error) throw error;
+      await insertRFQWithSafeFallback({ ownerId: dbg.userId });
 
       alert("RFQ created ✅");
       setTitle("");
@@ -107,20 +138,20 @@ export default function RFQs() {
       setNotes("");
 
       await loadRFQs();
-
-      // 3) en sonda krediyi DB’den yeniden çek
-      await refreshCredits();
+      await loadCredits();
     } catch (e) {
-      if (e?.code === "YETERSIZ_KREDI") {
+      const code = e?.code;
+
+      if (code === "YETERSIZ_KREDI") {
         alert("Kredi bitti kanka 😄");
         return;
       }
-      if (e?.code === "NOT_AUTHENTICATED") {
+      if (code === "NOT_AUTHENTICATED") {
         alert("Önce Login ol kanka.");
         return;
       }
+
       alert(e?.message || "Hata");
-      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -128,42 +159,27 @@ export default function RFQs() {
 
   return (
     <div style={{ padding: 16 }}>
-      <h2>RFQs</h2>
+      <h2 style={{ marginTop: 0 }}>RFQs</h2>
 
-      <div style={{ marginBottom: 10 }}>
+      <div style={{ marginBottom: 10, opacity: 0.9 }}>
         <b>Credits:</b> {credits === null ? "..." : credits}
       </div>
 
       <div style={dbgBox}>
-        <b>Auth Debug (telefon)</b>
-        <div>userId: {authDbg?.userId ?? "-"}</div>
-        <div>email: {authDbg?.email ?? "-"}</div>
-        <div>error: {authDbg?.error ?? "-"}</div>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Auth Debug (telefon)</div>
+        <div style={dbgLine}><b>userId:</b> {authDbg?.userId ?? "-"}</div>
+        <div style={dbgLine}><b>email:</b> {authDbg?.email ?? "-"}</div>
+        <div style={dbgLine}><b>error:</b> {authDbg?.error ?? "-"}</div>
       </div>
 
-      <div>
+      <div style={{ opacity: 0.8, marginBottom: 12 }}>
         RFQ açmak <b>1 kredi</b> yer.
       </div>
 
       <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title"
-          style={inp}
-        />
-        <textarea
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          placeholder="Description"
-          style={txt}
-        />
-        <input
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Notes"
-          style={inp}
-        />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" style={inp} />
+        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Description" style={txt} />
+        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes" style={inp} />
 
         <button onClick={onCreateRFQ} disabled={loading} style={btn}>
           {loading ? "Working..." : "Create RFQ (1 credit)"}
@@ -191,19 +207,8 @@ const inp = {
   color: "white",
   border: "1px solid rgba(255,255,255,.12)",
 };
-const txt = { ...inp, minHeight: 90, resize: "vertical" };
-const btn = {
-  padding: 12,
-  borderRadius: 14,
-  background: "#6d5cff",
-  color: "white",
-  border: "none",
-  cursor: "pointer",
-};
-const card = {
-  padding: 12,
-  marginTop: 8,
-  borderRadius: 12,
-  background: "rgba(0,0,0,.18)",
-};
+const txt = { ...inp, minHeight: 90 };
+const btn = { padding: 12, borderRadius: 14, background: "#6d5cff", color: "white", border: "none" };
+const card = { padding: 12, marginTop: 8, borderRadius: 12, background: "rgba(0,0,0,.18)" };
 const dbgBox = { margin: "12px 0", padding: 10, border: "1px dashed #555" };
+const dbgLine = { opacity: 0.9, marginBottom: 4 };
