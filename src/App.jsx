@@ -32,9 +32,12 @@ const nav = {
   display: "flex",
   gap: 12,
   padding: 12,
-  justifyContent: "flex-end",
   background: "rgba(0,0,0,.25)",
-  borderBottom: "1px solid rgba(255,255,255,.08)",
+  borderBottom: "1px solid rgba(255,255,255,.08)"
 };
 
-const a = { color: "white", textDecoration: "none", opacity: 0.95 };
+const a = {
+  color: "white",
+  textDecoration: "none",
+  opacity: 0.95
+};
