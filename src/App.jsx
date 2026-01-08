@@ -10,7 +10,6 @@ import RFQDetail from "./pages/RFQDetail";
 import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
 
-// ✅ NEW
 import PiPayment from "./pages/PiPayment";
 
 export default function App() {
@@ -22,9 +21,6 @@ export default function App() {
         <Link style={a} to="/products">Products</Link>
         <Link style={a} to="/rfqs">RFQs</Link>
         <Link style={a} to="/orders">Orders</Link>
-
-        {/* ✅ NEW */}
-        <Link style={a} to="/pi/pay">Pi Payment</Link>
       </div>
 
       <Routes>
@@ -37,8 +33,8 @@ export default function App() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
 
-        {/* ✅ NEW */}
-        <Route path="/pi/pay" element={<PiPayment />} />
+        {/* Pi payment order üstünden açılır */}
+        <Route path="/pi/payment/:orderId" element={<PiPayment />} />
       </Routes>
     </Router>
   );
@@ -48,7 +44,6 @@ const nav = {
   display: "flex",
   gap: 12,
   padding: 12,
-  justifyContent: "flex-end",
   background: "rgba(0,0,0,.25)",
   borderBottom: "1px solid rgba(255,255,255,.08)",
 };
