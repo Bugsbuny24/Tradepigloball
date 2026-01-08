@@ -18,7 +18,7 @@ import Products from "./pages/Products";
 import Store from "./pages/Store";
 import Stand from "./pages/Stand";
 
-import Credits from "./pages/Credits"; // ✅ DÜZELTİLDİ (lib değil, page)
+import Credits from "./pages/Credits"; // ✅ SADECE BU!
 
 export default function App() {
   return (
@@ -26,7 +26,6 @@ export default function App() {
       <NavBar />
       <Routes>
         <Route path="/" element={<Home />} />
-
         <Route path="/login" element={<Login />} />
 
         {/* RFQ */}
@@ -48,7 +47,6 @@ export default function App() {
         {/* Credits */}
         <Route path="/credits" element={<Credits />} />
 
-        {/* fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
