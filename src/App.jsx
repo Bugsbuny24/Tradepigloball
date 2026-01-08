@@ -11,7 +11,8 @@ import RFQDetail from "./pages/RFQDetail";
 
 import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
-
+import SellerOrders from "./pages/SellerOrders";
+import Billing from "./pages/Billing";
 import PiPayment from "./pages/PiPayment";
 
 import Products from "./pages/Products";
@@ -46,7 +47,8 @@ export default function App() {
 
         {/* Credits */}
         <Route path="/credits" element={<Credits />} />
-
+<Route path="/seller/orders" element={<SellerOrders />} />
+<Route path="/billing" element={<Billing />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
