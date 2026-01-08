@@ -1,40 +1,40 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
 import { getCredits } from "../lib/credits";
+import { getAuthDebug } from "../lib/debugAuth";
 
 export default function Credits() {
   const [credits, setCredits] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [dbg, setDbg] = useState(null);
+
+  const refresh = async () => {
+    const c = await getCredits();
+    setCredits(c);
+  };
 
   useEffect(() => {
-    const run = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setCredits(0);
-        setLoading(false);
-        return;
-      }
-
-      const total = await getCredits(user.id);
-      setCredits(total);
-      setLoading(false);
-    };
-
-    run();
+    refresh();
+    (async () => {
+      try {
+        const d = await getAuthDebug();
+        setDbg(d);
+      } catch {}
+    })();
   }, []);
 
-  if (loading) return <div style={{ padding: 20 }}>Loading...</div>;
-
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 16 }}>
       <h2>Credits</h2>
-      <p>
+      <div style={{ marginBottom: 12 }}>
         Total: <b>{credits}</b>
-      </p>
-      <small>RFQ / Offer / Product işlemleri kredi kullanır.</small>
+      </div>
+
+      {dbg && (
+        <div style={{ opacity: 0.8, fontSize: 12 }}>
+          <div><b>Auth Debug</b></div>
+          <div>userId: {dbg.userId}</div>
+          <div>email: {dbg.email}</div>
+        </div>
+      )}
     </div>
   );
 }
