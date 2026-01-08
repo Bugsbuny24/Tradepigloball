@@ -70,7 +70,7 @@ export default function App() {
                   width: 34,
                   height: 34,
                   borderRadius: 12,
-                  background: "rgba(130,90,255,.35)",
+                  background: "rgba(130,90,255,35)",
                   display: "grid",
                   placeItems: "center",
                   fontWeight: 900,
@@ -100,10 +100,13 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/products" element={<Products />} />
+
               <Route path="/rfqs" element={<RFQs />} />
+              <Route path="/rfqs/:id" element={<RFQDetail />} />
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-<Route path="/rfqs/:id" element={<RFQDetail />} />
+
             <FooterDisclaimer />
           </div>
         </div>
