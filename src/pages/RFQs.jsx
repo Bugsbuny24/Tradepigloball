@@ -1,10 +1,13 @@
 import React from "react";
 import { supabase } from "../lib/supabase";
 import { getAuthDebug } from "../lib/debugAuth";
+import { useNavigate } from "react-router-dom";
 
 const CREDIT_COST = { RFQ_CREATE: 1 };
 
 export default function RFQs() {
+  const nav = useNavigate();
+
   const [title, setTitle] = React.useState("");
   const [desc, setDesc] = React.useState("");
   const [notes, setNotes] = React.useState("");
@@ -13,19 +16,13 @@ export default function RFQs() {
   const [items, setItems] = React.useState([]);
   const [credits, setCredits] = React.useState(null);
 
-  // telefonda debug
   const [authDbg, setAuthDbg] = React.useState(null);
 
   function buildDescription(description, notesText) {
-    const d = String(description || "").trim();
-    const n = String(notesText || "").trim();
+    const d = (description || "").trim();
+    const n = (notesText || "").trim();
     if (!n) return d;
-    return (d ? d + "\n\n" : "") + `Notes: ${n}`;
-  }
-
-  function isMissingNotesColumnError(err) {
-    const msg = String(err?.message || err || "").toLowerCase();
-    return msg.includes("could not find") && msg.includes("notes") && msg.includes("schema cache");
+    return (d ? `${d}\n\n` : "") + `Notes: ${n}`;
   }
 
   async function loadRFQs() {
@@ -49,7 +46,7 @@ export default function RFQs() {
       return;
     }
 
-    // 1) önce RPC: rpc_wallet_me() -> balance döndürür
+    // 1) önce RPC: rpc_wallet_me -> balance döndürür
     const { data: rpcBal, error: rpcErr } = await supabase.rpc("rpc_wallet_me");
     if (!rpcErr) {
       const bal = typeof rpcBal === "number" ? rpcBal : Number(rpcBal);
@@ -57,7 +54,7 @@ export default function RFQs() {
       return;
     }
 
-    // 2) fallback: user_wallets.balance
+    // 2) fallback tablo: user_wallets.balance
     const { data: row, error: tErr } = await supabase
       .from("user_wallets")
       .select("balance")
@@ -65,11 +62,10 @@ export default function RFQs() {
       .maybeSingle();
 
     if (!tErr && row) {
-      setCredits(row?.balance ?? 0);
+      setCredits(row.balance ?? 0);
       return;
     }
 
-    // 3) en kötü 0
     setCredits(0);
   }
 
@@ -95,34 +91,7 @@ export default function RFQs() {
     if (error) throw error;
 
     const newBal = typeof data === "number" ? data : Number(data);
-    if (Number.isFinite(newBal)) setCredits(newBal);
-  }
-
-  async function insertRFQWithFallback(userId) {
-    // normal insert (buyer_id + notes)
-    const payload1 = {
-      buyer_id: userId,
-      title: title || "Test RFQ",
-      description: desc || "",
-      notes: notes || "",
-      status: "open",
-    };
-
-    const r1 = await supabase.from("rfqs").insert(payload1);
-    if (!r1.error) return;
-
-    // notes schema-cache / kolon yok hatası -> notes'i description içine gömüp tekrar dene
-    if (!isMissingNotesColumnError(r1.error)) throw r1.error;
-
-    const payload2 = {
-      buyer_id: userId,
-      title: title || "Test RFQ",
-      description: buildDescription(desc, notes),
-      status: "open",
-    };
-
-    const r2 = await supabase.from("rfqs").insert(payload2);
-    if (r2.error) throw r2.error;
+    if (!Number.isNaN(newBal)) setCredits(newBal);
   }
 
   async function onCreateRFQ() {
@@ -139,16 +108,35 @@ export default function RFQs() {
       // 1) önce kredi düş
       await spendCreditForRFQ();
 
-      // 2) sonra RFQ insert (owner_id yok, buyer_id var)
-      await insertRFQWithFallback(dbg.userId);
+      // 2) sonra RFQ insert (owner_id YOK ✅, buyer_id VAR ✅)
+      const payload = {
+        buyer_id: dbg.userId, // 🔥 zorunlu
+        title: title || "Test RFQ",
+        description: buildDescription(desc, notes),
+
+        // Eğer DB’de rfqs.notes kolonu AKTİF kullanacaksan:
+        // notes: (notes || "").trim(),
+      };
+
+      const { data: inserted, error } = await supabase
+        .from("rfqs")
+        .insert(payload)
+        .select("id")
+        .single();
+
+      if (error) throw error;
 
       alert("RFQ created ✅");
+
       setTitle("");
       setDesc("");
       setNotes("");
 
       await loadRFQs();
       await loadCredits();
+
+      // direkt detaya at
+      if (inserted?.id) nav(`/rfqs/${inserted.id}`);
     } catch (e) {
       if (e?.code === "YETERSIZ_KREDI") return alert("Kredi bitti kanka 😄");
       if (e?.code === "NOT_AUTHENTICATED") return alert("Önce Login ol kanka.");
@@ -203,21 +191,24 @@ export default function RFQs() {
       </div>
 
       <div style={{ marginTop: 18 }}>
-        {items.length ? (
-          items.map((x) => (
-            <div key={x.id} style={card}>
-              <b>{x.title}</b>
-              <div style={{ whiteSpace: "pre-wrap" }}>{x.description}</div>
-              {x.notes ? (
-                <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>
-                  {"\n"}Notes: {x.notes}
+        {items.length
+          ? items.map((x) => (
+              <div
+                key={x.id}
+                style={{ ...card, cursor: "pointer" }}
+                onClick={() => nav(`/rfqs/${x.id}`)}
+                title="Detayı aç"
+              >
+                <b>{x.title}</b>
+                <div style={{ whiteSpace: "pre-wrap", opacity: 0.95 }}>
+                  {x.description}
                 </div>
-              ) : null}
-            </div>
-          ))
-        ) : (
-          "No RFQs yet."
-        )}
+                <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+                  Detail + Offer →
+                </div>
+              </div>
+            ))
+          : "No RFQs yet."}
       </div>
     </div>
   );
@@ -231,17 +222,6 @@ const inp = {
   border: "1px solid rgba(255,255,255,.12)",
 };
 const txt = { ...inp, minHeight: 90 };
-const btn = {
-  padding: 12,
-  borderRadius: 14,
-  background: "#6d5cff",
-  color: "white",
-  border: "none",
-};
-const card = {
-  padding: 12,
-  marginTop: 8,
-  borderRadius: 12,
-  background: "rgba(0,0,0,.18)",
-};
+const btn = { padding: 12, borderRadius: 14, background: "#6d5cff", color: "white" };
+const card = { padding: 12, marginTop: 8, borderRadius: 12, background: "rgba(0,0,0,.18)" };
 const dbgBox = { margin: "12px 0", padding: 10, border: "1px dashed #555" };
