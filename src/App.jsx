@@ -5,7 +5,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Products from "./pages/Products";
 import RFQs from "./pages/RFQs";
-
+import RFQDetail from "./pages/RFQDetail";
 import CreditBar from "./components/CreditBar";
 
 const layout = {
@@ -103,7 +103,7 @@ export default function App() {
               <Route path="/rfqs" element={<RFQs />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-
+<Route path="/rfqs/:id" element={<RFQDetail />} />
             <FooterDisclaimer />
           </div>
         </div>
