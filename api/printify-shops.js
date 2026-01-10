@@ -1,21 +1,14 @@
-import axios from "axios";
-
 export default async function handler(req, res) {
   try {
-    const api = axios.create({
-      baseURL: "https://api.printify.com/v1",
-      headers: {
-        Authorization: `Bearer ${process.env.PRINTIFY_API_KEY}`,
-        "Content-Type": "application/json"
-      }
-    });
+    const token = process.env.PRINTIFY_TOKEN;
+    if (!token) return res.status(500).json({ error: "Missing PRINTIFY_TOKEN" });
 
-    const { data } = await api.get("/shops.json");
-    res.status(200).json(data);
-  } catch (err) {
-    res.status(500).json({
-      error: "Printify shops error",
-      details: err?.response?.data || err.message
+    const r = await fetch("https://api.printify.com/v1/shops.json", {
+      headers: { Authorization: `Bearer ${token}` },
     });
+    const data = await r.json();
+    return res.status(200).json(data);
+  } catch (e) {
+    return res.status(500).json({ error: e.message || "Server error" });
   }
 }
