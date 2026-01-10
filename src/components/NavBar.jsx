@@ -15,13 +15,23 @@ export default function NavBar() {
 
 const styles = {
   nav: {
+    background: "#000",
+    color: "#fff",
+    padding: "12px 24px",
     display: "flex",
     justifyContent: "space-between",
-    padding: "12px 20px",
-    background: "#000",
-    color: "#fff"
+    alignItems: "center"
   },
-  logo: { fontWeight: "bold" },
-  links: { display: "flex", gap: "15px" },
-  link: { color: "#fff", textDecoration: "none" }
+  logo: {
+    fontWeight: "bold",
+    fontSize: "18px"
+  },
+  links: {
+    display: "flex",
+    gap: "20px"
+  },
+  link: {
+    color: "#fff",
+    textDecoration: "none"
+  }
 };
