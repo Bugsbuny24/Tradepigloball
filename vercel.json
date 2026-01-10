@@ -3,3 +3,13 @@
   "outputDirectory": "dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }
+{
+  "modes": {
+    "rfq": true,
+    "collab": false,
+    "drop": false,
+    "local_producer": false,
+    "governance": false,
+    "ai_forecast": false
+  }
+}
