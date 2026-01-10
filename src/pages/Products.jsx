@@ -1,39 +1,17 @@
-import { useEffect, useState } from "react";
-
 export default function Products() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/printify-products")
-      .then(res => res.json())
-      .then(data => {
-        setProducts(data || []);
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) return <p style={{ padding: 20 }}>Yükleniyor...</p>;
-
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 24 }}>
       <h1>Products</h1>
 
-      {products.length === 0 && <p>Ürün yok</p>}
-
-      <div style={{ display: "grid", gap: 20 }}>
-        {products.map(p => (
-          <div key={p.id} style={{ border: "1px solid #ddd", padding: 10 }}>
-            <h3>{p.title}</h3>
-            {p.images?.[0] && (
-              <img
-                src={p.images[0].src}
-                alt={p.title}
-                width="200"
-              />
-            )}
-          </div>
-        ))}
+      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
+        <div>
+          <img
+            src="https://images.printify.com/mockup/6621b0e9b9a2b6f87e0b7e0e/1/1.jpg"
+            width="150"
+            alt="BROKE Tee"
+          />
+          <p><strong>BROKE Script Tee</strong></p>
+        </div>
       </div>
     </div>
   );
