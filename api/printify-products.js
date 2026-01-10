@@ -1,31 +1,34 @@
-import axios from "axios";
-
 export default async function handler(req, res) {
   try {
-    const api = axios.create({
-      baseURL: "https://api.printify.com/v1",
+    const token = process.env.PRINTIFY_API_KEY;
+
+    // 1️⃣ Mağazaları al
+    const shopsRes = await fetch("https://api.printify.com/v1/shops.json", {
       headers: {
-        Authorization: `Bearer ${process.env.PRINTIFY_API_KEY}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const shops = await shopsRes.json();
+    const shopId = shops[0]?.id;
+
+    if (!shopId) {
+      return res.status(400).json({ error: "Shop bulunamadı" });
+    }
+
+    // 2️⃣ Ürünleri al
+    const productsRes = await fetch(
+      `https://api.printify.com/v1/shops/${shopId}/products.json`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    });
+    );
 
-    // 1️⃣ shop id al
-    const shopsRes = await api.get("/shops.json");
-    const shopId = shopsRes.data[0]?.id;
-    if (!shopId) throw new Error("Shop ID bulunamadı");
-
-    // 2️⃣ ürünleri al
-    const productsRes = await api.get(`/shops/${shopId}/products.json`);
-
-    res.status(200).json({
-      shopId,
-      products: productsRes.data.data
-    });
+    const products = await productsRes.json();
+    res.status(200).json(products.data);
   } catch (err) {
-    res.status(500).json({
-      error: "Printify products error",
-      details: err?.response?.data || err.message
-    });
+    res.status(500).json({ error: err.message });
   }
 }
