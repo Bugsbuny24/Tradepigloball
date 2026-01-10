@@ -2,17 +2,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-
-    "env:check": "node scripts/check-env.mjs",
-    "db:migrate": "supabase db push",
-    "db:seed": "supabase db reset --linked --debug",
-    "db:reset": "node scripts/db-reset.mjs",
-
-    "ci": "npm run env:check && npm run build"
-  },
-  "devDependencies": {
-    "vite": "^5.0.0",
-    "supabase": "^1.0.0"
+    "preview": "vite preview"
   }
 }
