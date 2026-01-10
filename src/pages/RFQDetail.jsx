@@ -175,3 +175,7 @@ function DropBox({ rfq }) {
 <button>
   🏭 Local Producer Aç (15 Credit)
 </button>
+<button>🗳 Oy Ver (5 Credit)</button>
+<button>
+  🤖 Talep Tahmini (10 Credit)
+</button>
