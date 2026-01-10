@@ -136,3 +136,28 @@ function DropBox({ rfq }) {
     </div>
   );
 }
+{isCreator && rfq.status === "open" && !rfq.is_drop && (
+  <div style={{
+    marginTop: 30,
+    padding: 15,
+    border: "1px dashed #ccc"
+  }}>
+    <h4>Creator Actions</h4>
+
+    <button onClick={async () => {
+      await fetch("/api/drop-start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rfq_id: rfq.id,
+          starts_at: new Date().toISOString(),
+          ends_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString()
+        })
+      });
+      alert("Drop başladı ⏱");
+      window.location.reload();
+    }}>
+      ⏱ Drop Başlat (20 Credit)
+    </button>
+  </div>
+)}
