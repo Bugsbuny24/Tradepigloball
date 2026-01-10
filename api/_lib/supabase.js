@@ -1,0 +1,20 @@
+import { createClient } from '@supabase/supabase-js'
+
+export const supabaseUser = (req) => {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  return createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY,
+    {
+      global: {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      }
+    }
+  )
+}
+
+export const supabaseAdmin = () =>
+  createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
