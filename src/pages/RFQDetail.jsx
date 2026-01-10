@@ -161,3 +161,14 @@ function DropBox({ rfq }) {
     </button>
   </div>
 )}
+<button onClick={async()=>{
+  const r = await fetch("/api/ai-title",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ text: title })
+  });
+  const d = await r.json();
+  setTitle(d.result);
+}}>
+  ✨ AI ile İyileştir (5 Credit)
+</button>
