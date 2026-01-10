@@ -7,9 +7,9 @@ export function supabaseServer(req) {
     {
       global: {
         headers: {
-          Authorization: req.headers.authorization || '',
-        },
-      },
+          Authorization: req.headers.authorization || ''
+        }
+      }
     }
   )
 }
