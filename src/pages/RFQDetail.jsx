@@ -108,3 +108,13 @@ function AnalyticsBox({ rfqId }) {
     </div>
   );
 }
+<button onClick={async()=>{
+  await fetch("/api/collab-create",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ rfq_id: rfq.id })
+  });
+  alert("Collab açıldı 🤝");
+}}>
+  Collab Başlat (15 Credit)
+</button>
