@@ -1,34 +1,22 @@
 export default async function handler(req, res) {
   try {
-    const token = process.env.PRINTIFY_API_KEY;
+    const token = process.env.PRINTIFY_TOKEN;
+    const shopId = process.env.PRINTIFY_SHOP_ID;
 
-    // 1️⃣ Mağazaları al
-    const shopsRes = await fetch("https://api.printify.com/v1/shops.json", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const shops = await shopsRes.json();
-    const shopId = shops[0]?.id;
-
-    if (!shopId) {
-      return res.status(400).json({ error: "Shop bulunamadı" });
+    if (!token || !shopId) {
+      return res.status(500).json({ error: "Missing PRINTIFY_TOKEN or PRINTIFY_SHOP_ID" });
     }
 
-    // 2️⃣ Ürünleri al
-    const productsRes = await fetch(
-      `https://api.printify.com/v1/shops/${shopId}/products.json`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const r = await fetch(`https://api.printify.com/v1/shops/${shopId}/products.json`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-    const products = await productsRes.json();
-    res.status(200).json(products.data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const data = await r.json();
+    if (!r.ok) return res.status(r.status).json(data);
+
+    // Printify liste dönüyor: { current_page, data:[...] }
+    return res.status(200).json(data);
+  } catch (e) {
+    return res.status(500).json({ error: e.message || "Server error" });
   }
 }
