@@ -1,10 +1,8 @@
-import { supabaseUser } from './_lib/supabase'
+import { supabaseUser } from './_lib/supabase.js'
 
 export default async function handler(req, res) {
   const supabase = supabaseUser(req)
-
   const { data, error } = await supabase.rpc('ensure_user')
-
   if (error) return res.status(400).json({ error: error.message })
   res.json(data)
 }
