@@ -42,3 +42,13 @@ export default function Wallet() {
     </div>
   );
 }
+function ReferralBox({ userId }) {
+  const link = `${window.location.origin}/?ref=${userId}`;
+  return (
+    <div>
+      <h4>Davet Et</h4>
+      <input value={link} readOnly />
+      <small>Arkadaşın ilk 10 Credit harcarsa kazanırsın</small>
+    </div>
+  );
+}
