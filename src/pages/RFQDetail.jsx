@@ -172,3 +172,6 @@ function DropBox({ rfq }) {
 }}>
   ✨ AI ile İyileştir (5 Credit)
 </button>
+<button>
+  🏭 Local Producer Aç (15 Credit)
+</button>
