@@ -1,12 +1,12 @@
-import { supabaseUser } from './_lib/supabase.js'
-
-export default async function handler(req, res) {
-  const supabase = supabaseUser(req)
-  const { data, error } = await supabase
-    .from('credit_packages')
-    .select('id,title,pi_amount,credit_amount,bonus_credit')
-    .order('pi_amount', { ascending: true })
-
-  if (error) return res.status(400).json({ error: error.message })
-  res.json({ items: data || [] })
+export default function handler(req, res) {
+  return res.json({
+    ok: true,
+    items: [
+      { key: "starter", title: "Starter", pi_amount: 10, credit_amount: 100, bonus_credit: 0 },
+      { key: "creator", title: "Creator", pi_amount: 50, credit_amount: 500, bonus_credit: 100 },
+      { key: "pro", title: "Pro Creator", pi_amount: 100, credit_amount: 1200, bonus_credit: 100 },
+      { key: "boost", title: "Community Boost", pi_amount: 200, credit_amount: 2800, bonus_credit: 200 }
+    ],
+    rate_note: "1 Pi = 10 Credit (oran sabit değildir)"
+  });
 }
