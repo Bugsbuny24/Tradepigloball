@@ -1,55 +1,62 @@
 import { useEffect, useState } from "react";
-import { fetchPrintifyProducts } from "../lib/api";
-import { addToCart, getCart } from "../lib/cart";
 import { Link } from "react-router-dom";
 
 export default function Products() {
-  const [data, setData] = useState([]);
+  const [items, setItems] = useState([]);
   const [err, setErr] = useState("");
-  const [cartCount, setCartCount] = useState(getCart().reduce((a,b)=>a+b.qty,0));
 
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetchPrintifyProducts();
-        setData(r.data || []);
+        // RFQ Feed (API endpoint: /api/feed)
+        const r = await fetch("/api/feed");
+        const j = await r.json();
+        if (!r.ok) throw new Error(j?.error || "Feed alınamadı");
+        setItems(j.items || []);
       } catch (e) {
         setErr(e.message || "Hata");
       }
     })();
   }, []);
 
-  const onAdd = (p) => {
-    // Printify product model: id, title, images...
-    const image = (p.images && p.images[0] && p.images[0].src) || "";
-    addToCart({
-      id: p.id,
-      title: p.title,
-      image,
-      // fiyatı şimdilik sen belirle: (istersen variant price çekeriz)
-      priceTRY: 599
-    });
-    setCartCount(getCart().reduce((a,b)=>a+b.qty,0));
-  };
-
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <h1>Products</h1>
-        <Link to="/cart">Cart ({cartCount})</Link>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1>RFQ Feed</h1>
+
+        {/* Şimdilik basit yönlendirme. RFQ Create sayfasını ekleyince /rfq/create yaparız */}
+        <Link to="/login">Login</Link>
       </div>
 
-      {err && <p style={{ color:"crimson" }}>{err}</p>}
+      <p style={{ opacity: 0.8 }}>
+        Marketplace/Cart kapalı. Model: <b>RFQ + Credit</b>.
+      </p>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:16 }}>
-        {data.map(p => (
-          <div key={p.id} style={{ border:"1px solid #ddd", padding:12 }}>
-            {p.images?.[0]?.src && (
-              <img src={p.images[0].src} alt={p.title} style={{ width:"100%", height:160, objectFit:"contain" }} />
-            )}
-            <div style={{ fontWeight:"bold", marginTop:8 }}>{p.title}</div>
-            <div style={{ margin:"8px 0" }}>₺599</div>
-            <button onClick={() => onAdd(p)}>Sepete Ekle</button>
+      {err && <p style={{ color: "crimson" }}>{err}</p>}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+        {(items || []).map((x) => (
+          <div key={x.id} style={{ border: "1px solid #ddd", padding: 12, borderRadius: 10 }}>
+            <div style={{ fontWeight: "bold", marginBottom: 6 }}>{x.title}</div>
+            <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 10 }}>
+              {x.description?.slice(0, 140) || "—"}
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+              {Array.isArray(x.tags) && x.tags.slice(0, 6).map((t) => (
+                <span key={t} style={{ fontSize: 12, border: "1px solid #eee", padding: "2px 8px", borderRadius: 999 }}>
+                  {t}
+                </span>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 10 }}>
+              Credit: <b>{x.current_credit ?? 0}</b> / Min: <b>{x.min_credit ?? 0}</b>
+            </div>
+
+            <a href={`/api/rfqs-get?id=${x.id}`} target="_blank" rel="noreferrer">
+              JSON Detay
+            </a>
           </div>
         ))}
       </div>
