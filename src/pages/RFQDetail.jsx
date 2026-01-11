@@ -7,10 +7,23 @@ import DropBox from "../components/rfq/DropBox";
 import CollabBox from "../components/rfq/CollabBox";
 import AnalyticsBox from "../components/rfq/AnalyticsBox";
 import { FEATURES } from "../config/features";
+import VoteBox from "../components/rfq/VoteBox";
+import BoostBox from "../components/rfq/BoostBox";
+import AiImproveBox from "../components/ai/AiImproveBox";
+import useFeatures from "../hooks/useFeatures";
 export default function RFQDetail() {
   const { id } = useParams();
   const [rfq, setRfq] = useState(null);
+const f = useFeatures();
 
+{f.vote && <VoteBox rfqId={rfq.id} />}
+{f.boost && <BoostBox rfqId={rfq.id} />}
+{f.ai && (
+  <>
+    <AiImproveBox field="title" />
+    <AiImproveBox field="description" />
+  </>
+)}
   useEffect(() => {
     fetch(`/api/rfqs-get?id=${id}`)
       .then(r => r.json())
