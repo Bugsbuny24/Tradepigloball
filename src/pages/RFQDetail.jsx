@@ -14,11 +14,13 @@ import ReferralBox from "../components/growth/ReferralBox";
 export default function RFQDetail() {
   const { id } = useParams();
   const [rfq, setRfq] = useState(null);
-  const f = useFeatures();
+
+  // Şimdilik user yok → null geçiyoruz
+  const f = useFeatures(null);
 
   useEffect(() => {
     fetch(`/api/rfqs-get?id=${id}`)
-      .then(r => r.json())
+      .then((r) => r.json())
       .then(setRfq);
   }, [id]);
 
@@ -29,21 +31,23 @@ export default function RFQDetail() {
       <h1>{rfq.title}</h1>
       <p>{rfq.description}</p>
 
-      {rfq.cover_url && <img src={rfq.cover_url} width="320" />}
+      {rfq.cover_url && (
+        <img src={rfq.cover_url} width="320" alt="cover" />
+      )}
 
       <p>
         <strong>Destek:</strong> {rfq.current_credit} / {rfq.min_credit}
       </p>
 
-      {f.support && <SupportBox rfqId={rfq.id} />}
-      {f.vote && <VoteBox rfqId={rfq.id} />}
-      {f.boost && <BoostBox rfqId={rfq.id} />}
-      {f.analytics && <AnalyticsBox rfqId={rfq.id} />}
-      {f.collab && <CollabBox rfqId={rfq.id} />}
-      {f.ai && <AiBox rfq={rfq} />}
-      {f.referral && <ReferralBox rfqId={rfq.id} />}
+      {f.can("support") && <SupportBox rfqId={rfq.id} />}
+      {f.can("vote") && <VoteBox rfqId={rfq.id} />}
+      {f.can("boost") && <BoostBox rfqId={rfq.id} />}
+      {f.can("analytics") && <AnalyticsBox rfqId={rfq.id} />}
+      {f.can("collab") && <CollabBox rfqId={rfq.id} />}
+      {f.can("ai") && <AiBox rfq={rfq} />}
+      {f.can("referral") && <ReferralBox rfqId={rfq.id} />}
 
-      {f.drop && rfq.is_drop && <DropBox rfq={rfq} />}
+      {f.can("drop") && rfq.is_drop && <DropBox rfq={rfq} />}
     </div>
   );
 }
