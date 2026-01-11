@@ -9,9 +9,9 @@ export default function useFeatures(user) {
 
   const can = (key) => {
     const f = features[key];
-    if (!f || !f.enabled) return false;
+    if (!f || f.enabled === false) return false;
 
-    // v48.5: DEV debug override
+    // DEV + ?debug=true override
     if (IS_DEV && DEBUG) return true;
 
     return credit >= (f.minCredit ?? 0);
