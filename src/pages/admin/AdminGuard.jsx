@@ -1,24 +1,41 @@
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 
 export default function AdminGuard({ children }) {
   const { user, loading } = useAuth();
-const { data: admin } = await supabase
-  .from("app_admins")
-  .select("user_id")
-  .eq("user_id", user.id)
-  .single();
+  const [checking, setChecking] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-if (!admin) {
-  return <Navigate to="/" replace />;
-}
-  if (loading) return null;
+  useEffect(() => {
+    if (!user) {
+      setChecking(false);
+      return;
+    }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+    const checkAdmin = async () => {
+      const { data, error } = await supabase
+        .from("app_admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        setIsAdmin(true);
+      }
+
+      setChecking(false);
+    };
+
+    checkAdmin();
+  }, [user]);
+
+  if (loading || checking) {
+    return <div style={{ padding: 40 }}>Admin panel yükleniyor… 👑</div>;
   }
 
-  if (user.role !== "admin" && user.role !== "god") {
+  if (!user || !isAdmin) {
     return <Navigate to="/" replace />;
   }
 
