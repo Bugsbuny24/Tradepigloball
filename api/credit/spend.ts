@@ -1,16 +1,15 @@
-import { supabaseServer } from "../_lib/supabase";
+// api/credit/spend.ts
+import { supabaseServer } from "../_lib/supabase.js";
 
-export default async function spendCredit(req, res) {
+export async function spendCredit(req: any, {
+  user_id,
+  amount,
+  reason,
+  ref_type,
+  ref_id,
+  idempotency_key,
+}: any) {
   const supabase = supabaseServer(req);
-
-  const {
-    user_id,
-    amount,
-    reason,
-    ref_type,
-    ref_id,
-    idempotency_key,
-  } = req.body;
 
   const { data: wallet } = await supabase
     .from("credit_wallets")
@@ -19,7 +18,7 @@ export default async function spendCredit(req, res) {
     .single();
 
   if (!wallet || wallet.balance < amount) {
-    return res.status(400).json({ error: "INSUFFICIENT_CREDIT" });
+    throw new Error("INSUFFICIENT_CREDIT");
   }
 
   await supabase.rpc("credit_spend", {
@@ -31,5 +30,5 @@ export default async function spendCredit(req, res) {
     p_idempotency_key: idempotency_key,
   });
 
-  res.json({ ok: true });
+  return { ok: true };
 }
