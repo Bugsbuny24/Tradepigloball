@@ -1,20 +1,23 @@
-import AdminLayout from "@/components/admin/AdminLayout";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Economy() {
-  return (
-    <AdminLayout title="💰 Economy Control">
-      <Action icon="➕" label="Mint Credits" />
-      <Action icon="➖" label="Burn Credits" />
-      <Action icon="🎁" label="Give Bonus" />
-    </AdminLayout>
-  );
-}
+  const [total, setTotal] = useState(0);
 
-function Action({ icon, label }) {
+  useEffect(() => {
+    supabase
+      .from("credit_ledger")
+      .select("amount")
+      .then(({ data }) => {
+        const sum = data.reduce((a,b)=>a+b.amount,0);
+        setTotal(sum);
+      });
+  }, []);
+
   return (
-    <button className="w-full mb-3 flex items-center gap-3 bg-[#12182a] p-4 rounded border border-purple-500/30 hover:bg-purple-500/10">
-      <span className="text-xl">{icon}</span>
-      {label}
-    </button>
+    <>
+      <h3>🔥 Total Burned Credit</h3>
+      <h1>{Math.abs(total)}</h1>
+    </>
   );
 }
