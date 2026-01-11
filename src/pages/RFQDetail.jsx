@@ -11,11 +11,16 @@ import VoteBox from "../components/rfq/VoteBox";
 import BoostBox from "../components/rfq/BoostBox";
 import AiImproveBox from "../components/ai/AiImproveBox";
 import useFeatures from "../hooks/useFeatures";
+import ReferralBox from "../components/growth/ReferralBox";
+import LocalProducerBox from "../components/producer/LocalProducerBox";
+import CreatorBonusBox from "../components/creator/CreatorBonusBox";
 export default function RFQDetail() {
   const { id } = useParams();
   const [rfq, setRfq] = useState(null);
 const f = useFeatures();
-
+{f.referral && <ReferralBox />}
+{f.localProducer && <LocalProducerBox rfqId={rfq.id} />}
+{f.creatorBonus && <CreatorBonusBox />}
 {f.vote && <VoteBox rfqId={rfq.id} />}
 {f.boost && <BoostBox rfqId={rfq.id} />}
 {f.ai && (
