@@ -3,3 +3,13 @@ dist
 .env
 .env.local
 .DS_Store
+VITE_APP_ENV=development
+
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGci...
+
+VITE_FEATURE_DEBUG=true
+VITE_GOD_MODE=true
+
+VITE_API_BASE_URL=http://localhost:5173/api
+VITE_VERCEL_ENV=local
