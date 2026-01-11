@@ -1,5 +1,4 @@
-import AdminLayout from "@/components/admin/AdminLayout";
-
+import AdminLayout from "./AdminLayout";
 export default function Audit() {
   return (
     <AdminLayout title="Audit Log">
