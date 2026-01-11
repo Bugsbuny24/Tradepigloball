@@ -14,7 +14,7 @@ import CuratorPanel from "./pages/CuratorPanel";
 
 // Admin
 import AdminGuard from "./pages/admin/AdminGuard";
-import AdminLayout from "./pages/admin/AdminLayout";
+import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin";
 import Audit from "./pages/admin/audit";
 import Features from "./pages/admin/features";
