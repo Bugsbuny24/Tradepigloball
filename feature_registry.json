@@ -1,0 +1,7 @@
+{
+  "rfq_support": { "cost": 5 },
+  "boost_24h": { "cost": 10 },
+  "analytics_unlock": { "cost": 20 },
+  "drop_start": { "cost": 20 },
+  "collab_create": { "cost": 15 }
+}
