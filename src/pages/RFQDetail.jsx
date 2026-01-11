@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-/* ---------------- SUB COMPONENTS ---------------- */
+/* =======================
+   SUB COMPONENTS
+======================= */
 
 function FeatureBox({ rfqId }) {
   const feature = async (hours) => {
@@ -10,7 +12,7 @@ function FeatureBox({ rfqId }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rfq_id: rfqId, hours })
     });
-    alert("Öne çıkarıldı");
+    alert("Öne çıkarıldı 🔥");
     window.location.reload();
   };
 
@@ -44,7 +46,7 @@ function AnalyticsBox({ rfqId }) {
           load();
         }}
       >
-        Analytics Aç (20 Credit)
+        📊 Analytics Aç (20 Credit)
       </button>
     );
   }
@@ -70,27 +72,29 @@ function DropBox({ rfq }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rfq_id: rfq.id })
     });
-    alert("Drop’a katıldın");
+    alert("Drop’a katıldın ⏱");
   };
+
+  if (!rfq.drop_ends_at) return null;
 
   const ends = new Date(rfq.drop_ends_at);
 
   return (
-    <div>
+    <div style={{ marginTop: 20 }}>
       <p>Bitiyor: {ends.toLocaleString()}</p>
       <button onClick={join}>Katıl (5 Credit)</button>
     </div>
   );
 }
 
-/* ---------------- MAIN COMPONENT ---------------- */
+/* =======================
+   MAIN COMPONENT
+======================= */
 
 export default function RFQDetail() {
   const { id } = useParams();
   const [rfq, setRfq] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const isCreator = rfq?.is_creator;
 
   useEffect(() => {
     fetch(`/api/rfqs-get?id=${id}`)
@@ -106,7 +110,7 @@ export default function RFQDetail() {
       body: JSON.stringify({ rfq_id: id, qty: 1 })
     });
     setLoading(false);
-    alert("Destek verdin");
+    alert("Destek verdin 🔥");
     window.location.reload();
   };
 
@@ -117,43 +121,27 @@ export default function RFQDetail() {
       <h1>{rfq.title}</h1>
       <p>{rfq.description}</p>
 
-      {rfq.cover_url && <img src={rfq.cover_url} width="300" />}
+      {rfq.cover_url && (
+        <img src={rfq.cover_url} width="300" alt="rfq" />
+      )}
 
       <div style={{ marginTop: 20 }}>
         <strong>Destek:</strong> {rfq.current_credit} / {rfq.min_credit}
       </div>
 
-      <button disabled={loading} onClick={support}>
-        {loading ? "Bekle…" : "Destekle (5 Credit)"}
-      </button>
+      <div style={{ marginTop: 20 }}>
+        <button disabled={loading} onClick={support}>
+          {loading ? "Bekle…" : "Destekle (5 Credit)"}
+        </button>
+      </div>
 
       <FeatureBox rfqId={rfq.id} />
       <AnalyticsBox rfqId={rfq.id} />
+      <DropBox rfq={rfq} />
 
-      {rfq.is_drop && <DropBox rfq={rfq} />}
-
-      {isCreator && rfq.status === "open" && !rfq.is_drop && (
-        <div style={{ marginTop: 30, padding: 15, border: "1px dashed #ccc" }}>
-          <h4>Creator Actions</h4>
-          <button
-            onClick={async () => {
-              await fetch("/api/drop-start", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  rfq_id: rfq.id,
-                  starts_at: new Date().toISOString(),
-                  ends_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString()
-                })
-              });
-              alert("Drop başladı");
-              window.location.reload();
-            }}
-          >
-            Drop Başlat (20 Credit)
-          </button>
-        </div>
-      )}
+      <div style={{ marginTop: 10 }}>
+        <small>Status: {rfq.status}</small>
+      </div>
     </div>
   );
-  }
+}
