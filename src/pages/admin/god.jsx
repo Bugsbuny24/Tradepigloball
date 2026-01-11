@@ -1,40 +1,24 @@
-import AdminLayout from "@/components/admin/AdminLayout";
+import { Routes, Route, NavLink } from "react-router-dom";
+import Economy from "./god/economy";
+import Emergency from "./god/emergency";
+import Features from "./god/features";
 
-export default function GodMode() {
+export default function God() {
   return (
-    <AdminLayout title="God Mode">
-      <div className="grid grid-cols-2 gap-6">
+    <>
+      <h2 style={{ color: "red" }}>☠ GOD MODE</h2>
 
-        <GodCard
-          icon="⚙️"
-          title="Feature Control"
-          color="cyan"
-          desc="Enable / Disable platform features"
-        />
+      <NavLink to="economy">💳 Economy</NavLink>{" | "}
+      <NavLink to="features">🎛 Override</NavLink>{" | "}
+      <NavLink to="emergency">🚨 Emergency</NavLink>
 
-        <GodCard
-          icon="💰"
-          title="Economy Control"
-          color="purple"
-          desc="Credits, balances, boosts"
-        />
+      <hr/>
 
-        <GodCard
-          icon="🛠️"
-          title="System Control"
-          color="orange"
-          desc="Maintenance, rules, limits"
-        />
-
-        <GodCard
-          icon="🚨"
-          title="Emergency"
-          color="red"
-          desc="Kill switch / lockdown"
-          danger
-        />
-
-      </div>
-    </AdminLayout>
+      <Routes>
+        <Route path="economy" element={<Economy />} />
+        <Route path="features" element={<Features />} />
+        <Route path="emergency" element={<Emergency />} />
+      </Routes>
+    </>
   );
 }
