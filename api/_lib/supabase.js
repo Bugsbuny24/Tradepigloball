@@ -1,3 +1,4 @@
+// api/_lib/supabase.js
 import { createClient } from "@supabase/supabase-js";
 
 export function supabaseServer(req) {
@@ -7,7 +8,7 @@ export function supabaseServer(req) {
     {
       global: {
         headers: {
-          Authorization: req.headers.authorization || "",
+          Authorization: req?.headers?.authorization || "",
         },
       },
     }
