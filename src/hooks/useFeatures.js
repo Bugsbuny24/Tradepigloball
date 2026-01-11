@@ -1,10 +1,14 @@
 export default function useFeatures() {
   return {
-    rfq: true,
+    support: true,
+    feature: true,
+    analytics: true,
     collab: true,
     drop: true,
-    analytics: true,
-    ai: false,        // sonra açılır
-    localProducer: false
+
+    vote: true,        // v28 AÇILDI
+    ai: true,          // v28 AÇILDI
+    boost: true,       // v28 AÇILDI
+    localProducer: false,
   };
 }
