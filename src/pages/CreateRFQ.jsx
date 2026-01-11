@@ -1,6 +1,5 @@
 // src/pages/CreateRFQ.jsx
-import { supabase } from '../api/supabase';
-
+import { supabase } from "@/api/supabase";
 export default function CreateRFQ() {
   const submit = async (e) => {
     e.preventDefault();
