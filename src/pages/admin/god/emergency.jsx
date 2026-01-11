@@ -1,17 +1,24 @@
-import AdminLayout from "@/components/admin/AdminLayout";
+import { supabase } from "@/lib/supabase";
+
+async function toggle(key, enabled) {
+  await supabase
+    .from("system_flags")
+    .update({ enabled })
+    .eq("key", key);
+}
 
 export default function Emergency() {
   return (
-    <AdminLayout title="🚨 EMERGENCY MODE">
-      <div className="bg-red-500/10 border border-red-500/40 p-6 rounded-xl">
-        <p className="text-red-400 mb-4">
-          ⚠️ This action affects ALL USERS
-        </p>
+    <>
+      <h2 style={{color:"red"}}>🚨 EMERGENCY</h2>
 
-        <button className="w-full py-3 rounded bg-red-600 text-white font-bold hover:bg-red-700">
-          🔥 FULL PLATFORM LOCKDOWN
-        </button>
-      </div>
-    </AdminLayout>
+      <button onClick={()=>toggle("GLOBAL_FREEZE", true)}>
+        ⛔ FREEZE PLATFORM
+      </button>
+
+      <button onClick={()=>toggle("GLOBAL_FREEZE", false)}>
+        ▶ RESUME
+      </button>
+    </>
   );
 }
