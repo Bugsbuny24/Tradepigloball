@@ -6,7 +6,7 @@ import FeatureBox from "../components/rfq/FeatureBox";
 import DropBox from "../components/rfq/DropBox";
 import CollabBox from "../components/rfq/CollabBox";
 import AnalyticsBox from "../components/rfq/AnalyticsBox";
-
+import { FEATURES } from "../config/features";
 export default function RFQDetail() {
   const { id } = useParams();
   const [rfq, setRfq] = useState(null);
@@ -37,7 +37,15 @@ export default function RFQDetail() {
       <FeatureBox rfqId={rfq.id} />
       <AnalyticsBox rfqId={rfq.id} />
       <CollabBox rfqId={rfq.id} />
+{FEATURES.RFQ_SUPPORT && <SupportBox rfqId={rfq.id} />}
 
+{FEATURES.RFQ_FEATURE && <FeatureBox rfqId={rfq.id} />}
+
+{FEATURES.RFQ_ANALYTICS && <AnalyticsBox rfqId={rfq.id} />}
+
+{FEATURES.COLLAB && <CollabBox rfqId={rfq.id} />}
+
+{FEATURES.DROP && rfq.is_drop && <DropBox rfq={rfq} />}
       {rfq.is_drop && <DropBox rfq={rfq} />}
     </div>
   );
