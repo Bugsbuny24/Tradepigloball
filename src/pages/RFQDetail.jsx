@@ -1,16 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-export default function RFQDetail() {
-  const { id } = useParams();
-  const [rfq, setRfq] = useState(null);
-  const [loading, setLoading] = useState(false);
+/* ---------------- SUB COMPONENTS ---------------- */
 
-  useEffect(() => {
-    fetch(`/api/rfqs-get?id=${id}`)
-      .then(r => r.json())
-      .then(setRfq);
-  }, [id]);
 function FeatureBox({ rfqId }) {
   const feature = async (hours) => {
     await fetch("/api/rfqs-feature", {
@@ -18,9 +10,20 @@ function FeatureBox({ rfqId }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rfq_id: rfqId, hours })
     });
-    alert("Öne çıkarıldı 🔥");
+    alert("Öne çıkarıldı");
     window.location.reload();
   };
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <h4>Öne Çıkar</h4>
+      <button onClick={() => feature(24)}>24s · 10 Credit</button>
+      <button onClick={() => feature(72)}>3g · 25 Credit</button>
+      <button onClick={() => feature(168)}>7g · 50 Credit</button>
+    </div>
+  );
+}
+
 function AnalyticsBox({ rfqId }) {
   const [data, setData] = useState(null);
 
@@ -31,15 +34,17 @@ function AnalyticsBox({ rfqId }) {
 
   if (!data) {
     return (
-      <button onClick={async ()=>{
-        await fetch("/api/rfqs-analytics-unlock",{
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ rfq_id: rfqId })
-        });
-        load();
-      }}>
-        📊 Analytics Aç (20 Credit)
+      <button
+        onClick={async () => {
+          await fetch("/api/rfqs-analytics-unlock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rfq_id: rfqId })
+          });
+          load();
+        }}
+      >
+        Analytics Aç (20 Credit)
       </button>
     );
   }
@@ -48,7 +53,7 @@ function AnalyticsBox({ rfqId }) {
     <div>
       <h4>Destek Zaman Grafiği</h4>
       <ul>
-        {data.map(d=>(
+        {data.map((d) => (
           <li key={d.hour}>
             {new Date(d.hour).toLocaleString()} → {d.supports}
           </li>
@@ -57,27 +62,51 @@ function AnalyticsBox({ rfqId }) {
     </div>
   );
 }
+
+function DropBox({ rfq }) {
+  const join = async () => {
+    await fetch("/api/drop-join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rfq_id: rfq.id })
+    });
+    alert("Drop’a katıldın");
+  };
+
+  const ends = new Date(rfq.drop_ends_at);
+
   return (
-    <div style={{ marginTop: 20 }}>
-      <h4>Öne Çıkar</h4>
-      <button onClick={()=>feature(24)}>24s · 10 Credit</button>
-      <button onClick={()=>feature(72)}>3g · 25 Credit</button>
-      <button onClick={()=>feature(168)}>7g · 50 Credit</button>
+    <div>
+      <p>Bitiyor: {ends.toLocaleString()}</p>
+      <button onClick={join}>Katıl (5 Credit)</button>
     </div>
   );
 }
+
+/* ---------------- MAIN COMPONENT ---------------- */
+
+export default function RFQDetail() {
+  const { id } = useParams();
+  const [rfq, setRfq] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const isCreator = rfq?.is_creator;
+
+  useEffect(() => {
+    fetch(`/api/rfqs-get?id=${id}`)
+      .then((r) => r.json())
+      .then(setRfq);
+  }, [id]);
+
   const support = async () => {
     setLoading(true);
     await fetch("/api/rfqs-support", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        rfq_id: id,
-        qty: 1
-      })
+      body: JSON.stringify({ rfq_id: id, qty: 1 })
     });
     setLoading(false);
-    alert("Destek verdin 🔥");
+    alert("Destek verdin");
     window.location.reload();
   };
 
@@ -88,94 +117,43 @@ function AnalyticsBox({ rfqId }) {
       <h1>{rfq.title}</h1>
       <p>{rfq.description}</p>
 
-      {rfq.cover_url && (
-        <img src={rfq.cover_url} width="300" />
-      )}
+      {rfq.cover_url && <img src={rfq.cover_url} width="300" />}
 
       <div style={{ marginTop: 20 }}>
         <strong>Destek:</strong> {rfq.current_credit} / {rfq.min_credit}
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <button disabled={loading} onClick={support}>
-          {loading ? "Bekle…" : "Destekle (5 Credit)"}
-        </button>
-      </div>
+      <button disabled={loading} onClick={support}>
+        {loading ? "Bekle…" : "Destekle (5 Credit)"}
+      </button>
 
-      <div style={{ marginTop: 10 }}>
-        <small>Status: {rfq.status}</small>
-      </div>
+      <FeatureBox rfqId={rfq.id} />
+      <AnalyticsBox rfqId={rfq.id} />
+
+      {rfq.is_drop && <DropBox rfq={rfq} />}
+
+      {isCreator && rfq.status === "open" && !rfq.is_drop && (
+        <div style={{ marginTop: 30, padding: 15, border: "1px dashed #ccc" }}>
+          <h4>Creator Actions</h4>
+          <button
+            onClick={async () => {
+              await fetch("/api/drop-start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  rfq_id: rfq.id,
+                  starts_at: new Date().toISOString(),
+                  ends_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString()
+                })
+              });
+              alert("Drop başladı");
+              window.location.reload();
+            }}
+          >
+            Drop Başlat (20 Credit)
+          </button>
+        </div>
+      )}
     </div>
   );
-}
-<button onClick={async()=>{
-  await fetch("/api/collab-create",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ rfq_id: rfq.id })
-  });
-  alert("Collab açıldı 🤝");
-}}>
-  Collab Başlat (15 Credit)
-</button>
-function DropBox({ rfq }) {
-  const join = async () => {
-    await fetch("/api/drop-join",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ rfq_id: rfq.id })
-    });
-    alert("Drop’a katıldın ⏱");
-  };
-
-  const ends = new Date(rfq.drop_ends_at);
-  return (
-    <div>
-      <p>Bitiyor: {ends.toLocaleString()}</p>
-      <button onClick={join}>Katıl (5 Credit)</button>
-    </div>
-  );
-}
-{isCreator && rfq.status === "open" && !rfq.is_drop && (
-  <div style={{
-    marginTop: 30,
-    padding: 15,
-    border: "1px dashed #ccc"
-  }}>
-    <h4>Creator Actions</h4>
-
-    <button onClick={async () => {
-      await fetch("/api/drop-start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rfq_id: rfq.id,
-          starts_at: new Date().toISOString(),
-          ends_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString()
-        })
-      });
-      alert("Drop başladı ⏱");
-      window.location.reload();
-    }}>
-      ⏱ Drop Başlat (20 Credit)
-    </button>
-  </div>
-)}
-<button onClick={async()=>{
-  const r = await fetch("/api/ai-title",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ text: title })
-  });
-  const d = await r.json();
-  setTitle(d.result);
-}}>
-  ✨ AI ile İyileştir (5 Credit)
-</button>
-<button>
-  🏭 Local Producer Aç (15 Credit)
-</button>
-<button>🗳 Oy Ver (5 Credit)</button>
-<button>
-  🤖 Talep Tahmini (10 Credit)
-</button>
+  }
