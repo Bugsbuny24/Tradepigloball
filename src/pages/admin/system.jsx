@@ -1,4 +1,4 @@
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../admin/AdminLayout";
 export default function System() {
   return (
     <AdminLayout title="System Control">
