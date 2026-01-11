@@ -1,50 +1,38 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseServer } from "../_lib/supabase";
+import { requireAdmin } from "../_lib/adminGuard";
 
 export default async function handler(req, res) {
-  // 🔐 ADMIN GUARD
-  if (!req.user || !req.user.is_app_admin) {
-    return res.status(403).json({ error: "FORBIDDEN" });
-  }
-
-  const { action } = req.body;
-
-  if (!action || !action.type) {
-    return res.status(400).json({ error: "INVALID_ACTION" });
-  }
-
   try {
-    switch (action.type) {
-      case "feature_cost":
+    requireAdmin(req);
+    const supabase = supabaseServer(req);
+    const { action, payload } = req.body;
+
+    switch (action) {
+      case "toggle_feature":
         await supabase
           .from("feature_flags")
-          .update({ cost: action.value })
-          .eq("feature", action.feature);
+          .update({ enabled: payload.enabled })
+          .eq("feature", payload.feature);
         break;
 
       case "maintenance":
         await supabase
           .from("app_settings")
-          .update({ maintenance: action.enabled });
+          .update({ maintenance: payload.enabled });
         break;
 
       default:
-        return res.status(400).json({ error: "UNKNOWN_ACTION" });
+        throw new Error("UNKNOWN_ACTION");
     }
 
-    // 🧾 AUDIT LOG
     await supabase.from("audit_log").insert({
       actor_id: req.user.id,
-      action: `ADMIN_${action.type}`,
-      meta: action
+      action,
+      meta: payload,
     });
 
-    return res.json({ ok: true });
+    res.json({ ok: true });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    res.status(403).json({ error: e.message });
   }
-}
+              }
