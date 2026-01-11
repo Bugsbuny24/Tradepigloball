@@ -1,15 +1,14 @@
 export default function ReferralBox() {
-  const copy = () => {
-    const link = `${window.location.origin}/?ref=USER_ID`;
-    navigator.clipboard.writeText(link);
-    alert("Referans linki kopyalandı 🔗");
-  };
+  const link = `${window.location.origin}?ref=USER_ID`;
 
   return (
-    <div style={{ marginTop: 20 }}>
-      <h4>🎁 Davet Et – Credit Kazan</h4>
-      <p>Her yeni kullanıcı → 20 Credit</p>
-      <button onClick={copy}>Referans Linkini Kopyala</button>
+    <div>
+      <button onClick={() => {
+        navigator.clipboard.writeText(link);
+        alert("Referral link kopyalandı 🔗");
+      }}>
+        🎁 Davet Et (20 Credit)
+      </button>
     </div>
   );
 }
