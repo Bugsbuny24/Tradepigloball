@@ -1,20 +1,14 @@
-async function maintenance(enabled) {
-  await fetch("/api/admin/execute", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "maintenance",
-      payload: { enabled },
-    }),
-  });
-}
+import AdminLayout from "@/components/admin/AdminLayout";
 
 export default function System() {
   return (
-    <div>
-      <h2>System Control</h2>
-      <button onClick={() => maintenance(true)}>Maintenance ON</button>
-      <button onClick={() => maintenance(false)}>Maintenance OFF</button>
-    </div>
+    <AdminLayout title="System Control">
+      <div className="bg-red-500/10 border border-red-500/30 p-6 rounded-xl">
+        <h2 className="text-red-400 font-bold mb-2">🚨 Maintenance Mode</h2>
+        <button className="bg-red-500/30 px-4 py-2 rounded hover:bg-red-500/50">
+          Toggle Maintenance
+        </button>
+      </div>
+    </AdminLayout>
   );
 }
