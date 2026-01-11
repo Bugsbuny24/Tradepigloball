@@ -1,22 +1,26 @@
-import { spendCredit } from "../credit/spend";
+// api/rfq/support.ts
+import { supabaseServer } from "../_lib/supabase.js";
+import { spendCredit } from "../credit/spend.js";
 
-export default async function handler(req, res) {
-  const { user, rfq_id } = req.body;
+export async function rfqSupport(req: any, {
+  user_id,
+  rfq_id,
+}: any) {
+  const supabase = supabaseServer(req);
 
-  await spendCredit({
-    user_id: user.id,
+  await spendCredit(req, {
+    user_id,
     amount: 5,
     reason: "rfq_support",
     ref_type: "rfq",
     ref_id: rfq_id,
-    idempotency_key: `${user.id}:${rfq_id}`
+    idempotency_key: `rfq_support_${rfq_id}`,
   });
 
   await supabase
-    .from("rfq_supports")
-    .insert({ rfq_id, supporter_id: user.id });
+    .from("rfqs")
+    .update({ supported: true })
+    .eq("id", rfq_id);
 
-  await supabase.rpc("rfq_recalc_status", { p_rfq_id: rfq_id });
-
-  res.json({ ok: true });
+  return { ok: true };
 }
