@@ -38,3 +38,6 @@ export default async function handler(req, res) {
     res.status(400).json({ error: e.message });
   }
 }
+if (!process.env.GOD_EMAILS?.includes(req.user.email)) {
+  return res.status(403).json({ error: "GOD MODE ONLY" });
+}
