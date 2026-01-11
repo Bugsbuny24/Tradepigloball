@@ -1,23 +1,18 @@
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AdminGuard({ children }) {
-  const [ok, setOk] = useState(null);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    supabase
-      .from("app_admins")
-      .select("user_id")
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        setOk(!!data);
-      });
-  }, []);
+  if (loading) return null;
 
-  if (ok === null) return null;
-  if (!ok) return <Navigate to="/" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role !== "admin" && user.role !== "god") {
+    return <Navigate to="/" replace />;
+  }
 
   return children;
 }
