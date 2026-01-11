@@ -1,4 +1,5 @@
-import features from "../src/config/features";
+// api/_featureGuard.js
+import features from "../src/config/features.js";
 
 export function requireFeature(name) {
   if (!features[name]?.enabled) {
