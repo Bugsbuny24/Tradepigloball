@@ -1,3 +1,6 @@
+if (!req.user || !req.user.is_app_admin) {
+  return res.status(403).json({ error: "FORBIDDEN" });
+}
 export default async function handler(req, res) {
   const { action } = req.body;
 
