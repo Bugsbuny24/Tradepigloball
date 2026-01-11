@@ -5,10 +5,12 @@ export default function useFeatures() {
     analytics: true,
     collab: true,
     drop: true,
+    boost: true,
+    vote: true,
+    ai: true,
 
-    vote: true,        // v28 AÇILDI
-    ai: true,          // v28 AÇILDI
-    boost: true,       // v28 AÇILDI
-    localProducer: false,
+    referral: true,        // v31
+    localProducer: true,   // v31
+    creatorBonus: true,    // v31
   };
 }
