@@ -1,43 +1,37 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import Layout from "./components/Layout.jsx";
-import AppShell from "./components/AppShell.jsx";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Layout from "./components/Layout";
 
-import Home from "./pages/Home.jsx";
-import Explore from "./pages/Explore.jsx";
-import RFQDetail from "./pages/RFQDetail.jsx";
-import Login from "./pages/Login.jsx";
-
-import Dashboard from "./pages/Dashboard.jsx";
-import Create from "./pages/Create.jsx";
-import CreateRFQ from "./pages/CreateRFQ.jsx";
-import Wallet from "./pages/Wallet.jsx";
-import MyRFQs from "./pages/MyRFQs.jsx";
-import Profile from "./pages/Profile.jsx";
-import TopUp from "./pages/TopUp.jsx";
+// Pages
+import Feed from "./pages/Feed";
+import Login from "./pages/Login";
+import Create from "./pages/Create";
+import CreateRFQ from "./pages/CreateRFQ";
+import RFQDetail from "./pages/RFQDetail";
+import Wallet from "./pages/Wallet";
+import TopUp from "./pages/TopUp";
+import CreatorProfile from "./pages/CreatorProfile";
+import CuratorPanel from "./pages/CuratorPanel";
 
 export default function App() {
   return (
     <Routes>
-      {/* Public */}
+      {/* Layout wrapper */}
       <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/explore" element={<Explore />} />
-        <Route path="/rfq/:id" element={<RFQDetail />} />
+        {/* Public */}
+        <Route path="/" element={<Feed />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/rfq/:id" element={<RFQDetail />} />
+
+        {/* App / Panel */}
+        <Route path="/create" element={<Create />} />
+        <Route path="/create/rfq" element={<CreateRFQ />} />
+        <Route path="/wallet" element={<Wallet />} />
+        <Route path="/topup" element={<TopUp />} />
+        <Route path="/creator/:id" element={<CreatorProfile />} />
+        <Route path="/curator" element={<CuratorPanel />} />
       </Route>
 
-      {/* Panel */}
-      <Route element={<AppShell />}>
-        <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
-        <Route path="/app/dashboard" element={<Dashboard />} />
-        <Route path="/app/create" element={<Create />} />
-        <Route path="/app/create/rfq" element={<CreateRFQ />} />
-        <Route path="/app/wallet" element={<Wallet />} />
-        <Route path="/app/rfqs" element={<MyRFQs />} />
-        <Route path="/app/profile" element={<Profile />} />
-        <Route path="/app/topup" element={<TopUp />} />
-      </Route>
-
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
