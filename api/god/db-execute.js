@@ -1,12 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
-import { validateDBAction } from "./db-validate";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 export default async function handler(req, res) {
+  // 🔐 GOD MODE GUARD — EN ÜSTTE
+  const GOD_EMAILS = process.env.GOD_EMAILS?.split(",") ?? [];
+
+  if (!req.user || !GOD_EMAILS.includes(req.user.email)) {
+    return res.status(403).json({ error: "GOD MODE ONLY" });
+  }
+
   try {
     const action = req.body;
 
@@ -18,7 +17,6 @@ export default async function handler(req, res) {
       const cols = Object.entries(action.columns)
         .map(([k, v]) => `${k} ${v}`)
         .join(",");
-
       sql = `create table if not exists ${action.table} (${cols});`;
     }
 
@@ -30,14 +28,11 @@ export default async function handler(req, res) {
 
     await supabase.from("audit_log").insert({
       action: "GOD_DB_" + action.type,
-      meta: action
+      meta: action,
     });
 
     res.json({ ok: true });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
-}
-if (!process.env.GOD_EMAILS?.includes(req.user.email)) {
-  return res.status(403).json({ error: "GOD MODE ONLY" });
 }
