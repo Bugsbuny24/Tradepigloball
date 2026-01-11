@@ -1,4 +1,4 @@
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "../AdminLayout";
 export default function GodFeatures() {
   return (
     <AdminLayout title="⚙️ Feature Control">
