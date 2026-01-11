@@ -1,18 +1,23 @@
 export async function creditAction({
   endpoint,
+  cost,
   payload,
-  success,
-  fallback
+  success = "İşlem tamamlandı"
 }) {
-  try {
-    const r = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    if (!r.ok) throw new Error("fail");
-    success?.();
-  } catch {
-    fallback?.();
+  const ok = confirm(`${cost} Credit harcanacak. Emin misin?`);
+  if (!ok) return;
+
+  const r = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!r.ok) {
+    alert("Yetersiz credit veya hata");
+    return;
   }
+
+  alert(success);
+  window.location.reload();
 }
