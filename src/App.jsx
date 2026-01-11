@@ -13,8 +13,8 @@ import CreatorProfile from "./pages/CreatorProfile";
 import CuratorPanel from "./pages/CuratorPanel";
 
 // ===== Admin =====
-import AdminGuard from "./admin/AdminGuard";
-import AdminLayout from "./admin/AdminLayout";
+import AdminGuard from "./pages/admin/AdminGuard";
+import AdminLayout from "./pages/admin/AdminLayout";
 import AdminHome from "./admin/pages/AdminHome";
 import AdminUsers from "./admin/pages/AdminUsers";
 import AdminRFQ from "./admin/pages/AdminRFQ";
