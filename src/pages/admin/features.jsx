@@ -1,20 +1,24 @@
-async function toggle(feature, enabled) {
-  await fetch("/api/admin/execute", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "toggle_feature",
-      payload: { feature, enabled },
-    }),
-  });
-}
+import AdminLayout from "@/components/admin/AdminLayout";
 
 export default function Features() {
   return (
-    <div>
-      <h2>Feature Flags</h2>
-      <button onClick={() => toggle("rfq", true)}>RFQ ON</button>
-      <button onClick={() => toggle("rfq", false)}>RFQ OFF</button>
+    <AdminLayout title="Features">
+      <div className="space-y-4">
+        <Toggle name="RFQ" />
+        <Toggle name="Showcase" />
+        <Toggle name="AI Predict" />
+      </div>
+    </AdminLayout>
+  );
+}
+
+function Toggle({ name }) {
+  return (
+    <div className="flex justify-between items-center bg-[#12182a] p-4 rounded-lg border border-cyan-500/20">
+      <span>{name}</span>
+      <button className="px-4 py-1 rounded bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/40">
+        Toggle
+      </button>
     </div>
   );
 }
