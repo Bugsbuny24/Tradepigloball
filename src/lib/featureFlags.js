@@ -1,5 +1,11 @@
-export const FEATURES = {
-  RFQ_CREATE: { cost: 5, enabled: true },
-  COLLAB_MODE: { cost: 15, enabled: false },
-  ANALYTICS: { cost: 20, enabled: true },
-};
+import { supabase } from "./supabase";
+
+export async function getFeature(key) {
+  const { data } = await supabase
+    .from("feature_flags")
+    .select("*")
+    .eq("key", key)
+    .single();
+
+  return data;
+}
