@@ -1,7 +1,7 @@
-import { FEATURES } from "../src/config/features";
+import features from "../src/config/features";
 
 export function requireFeature(name) {
-  if (!FEATURES[name]) {
+  if (!features[name]?.enabled) {
     throw new Error("Feature disabled");
   }
 }
