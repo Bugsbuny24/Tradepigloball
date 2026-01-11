@@ -14,8 +14,32 @@ import useFeatures from "../hooks/useFeatures";
 import ReferralBox from "../components/growth/ReferralBox";
 import LocalProducerBox from "../components/producer/LocalProducerBox";
 import CreatorBonusBox from "../components/creator/CreatorBonusBox";
+import useFeatures from "../hooks/useFeatures";
+import SupportBox from "../components/rfq/SupportBox";
+import VoteBox from "../components/rfq/VoteBox";
+import BoostBox from "../components/rfq/BoostBox";
+import DropBox from "../components/rfq/DropBox";
+import ReferralBox from "../components/growth/ReferralBox";
+import AiBox from "../components/ai/AiBox";
+
+const f = useFeatures();
+
+{f.support && <SupportBox rfqId={rfq.id} />}
+{f.vote && <VoteBox rfqId={rfq.id} />}
+{f.boost && <BoostBox rfqId={rfq.id} />}
+{f.drop && <DropBox rfqId={rfq.id} />}
+{f.ai && <AiBox rfqId={rfq.id} />}
+{f.referral && <ReferralBox />}
 export default function RFQDetail() {
   const { id } = useParams();
+  const f = useFeatures();
+
+{f.support && <SupportBox rfqId={rfq.id} />}
+{f.vote && <VoteBox rfqId={rfq.id} />}
+{f.boost && <BoostBox rfqId={rfq.id} />}
+{f.drop && <DropBox rfqId={rfq.id} />}
+{f.ai && <AiBox rfqId={rfq.id} />}
+{f.referral && <ReferralBox />}
   const [rfq, setRfq] = useState(null);
 const f = useFeatures();
 {f.referral && <ReferralBox />}
