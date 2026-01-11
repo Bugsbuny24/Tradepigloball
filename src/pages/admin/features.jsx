@@ -1,4 +1,4 @@
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "../AdminLayout";
 export default function Features() {
   return (
     <AdminLayout title="Features">
