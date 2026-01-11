@@ -1,5 +1,4 @@
-import AdminLayout from "@/components/admin/AdminLayout";
-
+import AdminLayout from "../admin/AdminLayout";
 export default function Features() {
   return (
     <AdminLayout title="Features">

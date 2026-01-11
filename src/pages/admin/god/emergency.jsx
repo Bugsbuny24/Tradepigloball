@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../../lib/supabase";
 
 async function toggle(key, enabled) {
   await supabase
