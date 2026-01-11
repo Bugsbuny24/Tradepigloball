@@ -21,8 +21,7 @@ export default function AdminGuard({ children }) {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (data) {
-  setIsAdmin(true);
+      if (data) {setIsAdmin(true);
       }
       
 
